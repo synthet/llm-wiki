@@ -1,0 +1,16 @@
+{
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "llmwiki": {
+      "command": "python3",
+      "args": ["-m", "llmwiki.mcp_server"],
+      "cwd": ".",
+      "env": {
+        "PYTHONPATH": "src",
+        "LLMWIKI_ROOT": "wiki"
+      },
+      "timeout": 15000,
+      "trust": false
+    }
+  }
+}

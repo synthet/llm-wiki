@@ -1,0 +1,13 @@
+description = "Search the LLM Wiki and answer grounded in the results."
+prompt = """
+You are answering using the LLM Wiki in this repo.
+
+First, (re)build the index and search for the user's query:
+
+!{PYTHONPATH=src python3 -m llmwiki.cli --root wiki index >/dev/null 2>&1; PYTHONPATH=src python3 -m llmwiki.cli --root wiki search "{{args}}" --expand --limit 8}
+
+Then open the most relevant page(s) with
+`PYTHONPATH=src python3 -m llmwiki.cli --root wiki get "<title-or-id>"` and answer
+the question, citing the page title and path. Prefer `reviewed` pages; if you
+rely on a `candidate` or `disputed` page, say so explicitly.
+"""

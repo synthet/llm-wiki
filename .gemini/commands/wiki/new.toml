@@ -1,0 +1,16 @@
+description = "Create a new candidate wiki page from a title."
+prompt = """
+Create a new wiki page for: {{args}}
+
+!{PYTHONPATH=src python3 -m llmwiki.cli --root wiki new "{{args}}"}
+
+Then open the created file under `wiki/pages/` and fill it in:
+- Pick the right `type` (`entity` for a thing/tool/org, `topic` for a concept,
+  otherwise `note`).
+- Add `sources` (uri + `sha256:` digest + rights) and atomic `claims` with
+  `evidence`. Keep `status: candidate`.
+- Add `[[Wikilinks]]` to existing related pages (list them with
+  `PYTHONPATH=src python3 -m llmwiki.cli --root wiki list`).
+
+Finish by running `/wiki:lint` and `/wiki:index`.
+"""
