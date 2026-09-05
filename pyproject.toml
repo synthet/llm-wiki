@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llmwiki"
+version = "0.1.0"
+description = "Index, lint-validate and search an LLM Wiki — CLI and MCP server, with Claude Code / Cursor / Gemini integrations."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "llm-wiki contributors" }]
+keywords = ["llm", "wiki", "knowledge", "rag", "mcp", "provenance", "okf"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Text Processing :: Markup :: Markdown",
+]
+# No hard runtime dependencies: PyYAML is used when present, with a stdlib
+# fallback, and the MCP server is pure standard library.
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=5.1"]
+dev = ["PyYAML>=5.1", "pytest>=7"]
+
+[project.scripts]
+llmwiki = "llmwiki.cli:main"
+llmwiki-mcp = "llmwiki.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/synthet/llm-wiki"
+Repository = "https://github.com/synthet/llm-wiki"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

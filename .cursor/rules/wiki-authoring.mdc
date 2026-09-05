@@ -1,0 +1,32 @@
+---
+description: Frontmatter and authoring rules applied when editing wiki pages
+globs: wiki/**/*.md
+alwaysApply: false
+---
+
+# Authoring a wiki page
+
+When creating or editing a file under `wiki/pages/`, keep it lint-clean
+(`llmwiki lint --strict`).
+
+## Required frontmatter
+- `id` — canonical, opaque, unique (e.g. `entity:open-knowledge-format`). Never
+  change it on rename; add old names to `aliases` instead.
+- `title`, `slug`, `type` (`entity|topic|note|index`), `status`
+  (`candidate|reviewed|disputed|stale|superseded|retracted`).
+
+## Grounding
+- Reviewed `entity`/`topic` pages must carry `sources` and `claims`.
+- Each claim needs `text` and, when `reviewed`/`disputed`, `evidence` with a
+  `source_id` that exists in the page's `sources` list, plus a `locator`.
+- Record each source's `uri`, a `sha256:` `digest`, and `rights`.
+
+## Links & freshness
+- Use `[[Wikilinks]]`; every target must resolve to an existing page.
+- Set `freshness.checked_at`; if `expires_at` passes, the linter flags it stale.
+- If `rights.redistribution_allowed: true`, declare a `license_expression`.
+
+## Discipline
+- Prefer editing an existing page over creating a duplicate identity.
+- Contradictions are kept, not overwritten — set `status: disputed`.
+- Deletions are tombstones — set `status: retracted`, don't erase history.

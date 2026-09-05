@@ -1,0 +1,12 @@
+description = "Lint-validate the LLM Wiki and fix reported errors."
+prompt = """
+Validate the wiki, then fix any errors you find.
+
+!{PYTHONPATH=src python3 -m llmwiki.cli --root wiki lint --strict}
+
+For each error, edit the offending page under `wiki/pages/` (see
+`docs/schema.md`): fix broken wikilinks, add missing claim `evidence`, resolve
+duplicate ids/slugs, correct invalid status/type, or refresh stale pages.
+Re-run the linter until it reports `OK`, then rebuild the index with
+`PYTHONPATH=src python3 -m llmwiki.cli --root wiki index`.
+"""

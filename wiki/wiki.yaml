@@ -1,0 +1,6 @@
+# llmwiki configuration for the bundled sample wiki.
+name: LLM Wiki
+pages_dir: pages
+strict_rules:
+  - missing-evidence
+  - stale

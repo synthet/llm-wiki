@@ -1,0 +1,33 @@
+---
+description: LLM Wiki project — how to search, edit and validate the knowledge base
+alwaysApply: true
+---
+
+# LLM Wiki
+
+This repo is an **LLM Wiki**: durable interlinked Markdown pages under
+`wiki/pages/` with claim-level provenance, plus a toolkit (`llmwiki`) that
+indexes, lint-validates and searches them via a CLI and an MCP server.
+
+## Use the tools
+An MCP server `llmwiki` is configured in `.cursor/mcp.json`. Prefer its tools —
+`wiki_search`, `wiki_get_page`, `wiki_validate`, `wiki_index`, `wiki_stats`,
+`wiki_backlinks`, `wiki_list_pages`. Equivalent CLI from the repo root:
+
+```bash
+PYTHONPATH=src python3 -m llmwiki.cli --root wiki search "<query>" --expand
+PYTHONPATH=src python3 -m llmwiki.cli --root wiki lint --strict
+PYTHONPATH=src python3 -m llmwiki.cli --root wiki index
+```
+
+## Rules
+- Ground answers about the domain in `wiki_search` results; cite page title/path.
+- The wiki is a **projection of claims** — every reviewed factual claim needs
+  `evidence` referencing a listed `source`.
+- New/AI-authored content starts as `status: candidate`; only a human promotes
+  to `reviewed`. Never overwrite a contradiction — keep both and mark `disputed`.
+- `id` is canonical identity; filenames/slugs are aliases.
+- After editing pages: run `wiki_validate --strict` (fix all errors) then
+  `wiki_index`. Never commit the generated `wiki/.llmwiki/` directory.
+
+See `docs/schema.md` for the full page/frontmatter model.
