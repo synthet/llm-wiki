@@ -1,0 +1,2 @@
+description = "Review an exact LLM Wiki claim revision"
+prompt = "Use `llmwiki review {{args}} --json` only with the human-supplied reviewer and note. Never infer review authorization."

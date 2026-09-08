@@ -1,0 +1,3 @@
+description = "Validate canonical LLM Wiki integrity"
+prompt = "Run `llmwiki validate --json`. Report digest, locator, evidence, dependency, and render-conflict failures."
+

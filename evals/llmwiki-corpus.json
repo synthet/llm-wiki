@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "thresholds": {
+    "citation_coverage": 1.0,
+    "locator_validity": 1.0,
+    "contradiction_retention": 1.0,
+    "review_leakage_prevention": 1.0,
+    "targeted_stale_propagation": 1.0,
+    "unrelated_claim_stability": 1.0,
+    "deterministic_rebuild": 1.0
+  },
+  "sources": [
+    {
+      "name": "birds-a.md",
+      "text": "# Ravens\n\nRavens remember human faces.\n",
+      "entity": "Raven",
+      "claim": "Ravens remember human faces."
+    },
+    {
+      "name": "birds-b.md",
+      "text": "# Ravens\n\nOne study did not observe long-term face memory.\n",
+      "entity": "Raven",
+      "claim": "One study did not observe long-term face memory."
+    }
+  ]
+}
