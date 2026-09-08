@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-wiki"
+version = "0.1.0"
+description = "Local-first evidence-bound LLM Wiki knowledge compiler"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Synthet" }]
+dependencies = [
+  "httpx>=0.28,<1",
+  "mcp>=2,<3",
+  "pydantic>=2.10,<3",
+  "pypdf>=6,<7",
+  "PyYAML>=6.0.2,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<10",
+  "pytest-asyncio>=0.25,<2",
+  "ruff>=0.11,<1",
+]
+
+[project.scripts]
+llmwiki = "llmwiki.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llmwiki"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -1,0 +1,59 @@
+name: Project CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Clean editable install
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Compile sources
+        run: python -m compileall -q src tests scripts
+
+      - name: Offline product and stdio MCP tests
+        run: python -m pytest -q
+
+      - name: Verify console entry point
+        run: llmwiki --help
+
+      - name: Verify generated assistant mirrors
+        run: python scripts/sync_assistant_trees.py --check
+
+      - name: Verify assistant inventory
+        run: python scripts/generate_agent_asset_inventory.py --check
+
+      - name: Validate assistant frontmatter
+        run: python scripts/ci/check_agent_frontmatter.py
+
+      - name: Scan committed files for secrets
+        run: python scripts/ci/check_secrets.py
+
+      - name: Validate OKF-aligned developer docs
+        run: python scripts/okf_lint.py --profile project --exclude-prefix archive/ docs
