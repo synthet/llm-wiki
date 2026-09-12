@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from os import utime
 from pathlib import Path
 
 from scripts.agent_memory import yaml_compat as yaml
@@ -53,6 +54,19 @@ def test_run_dream_promotion_consumes_sessions_without_refreshing_dates(tmp_path
     assert parse_front_matter(promoted)["consumed_sessions"] == ["session-a.yaml"]
     assert parse_front_matter(dreamed_again)["source_sessions"] == []
     assert replayed_item.last_updated_at == "2026-01-02"
+
+
+def test_run_dream_applies_limit_after_excluding_consumed_sessions(tmp_path: Path) -> None:
+    _write_session(tmp_path, "session-a.yaml", _session("2026-01-02T12:00:00Z"))
+    first_dream, _ = run_dream(tmp_path)
+    promote_dream(tmp_path, first_dream)
+
+    _write_session(tmp_path, "session-b.yaml", _session("2026-02-03T09:00:00Z"))
+    raw = tmp_path / ".agent-memory" / "raw-sessions"
+    utime(raw / "session-b.yaml", (1, 1))
+    dream, _ = run_dream(tmp_path, max_sessions=1)
+
+    assert parse_front_matter(dream.read_text(encoding="utf-8"))["source_sessions"] == ["session-b.yaml"]
 
 
 def test_merge_sections_only_new_observation_updates_dates_and_keeps_unverified() -> None:

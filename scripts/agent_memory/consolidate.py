@@ -32,7 +32,6 @@ class MemoryItem:
     section: str
     sources: list[str] = field(default_factory=list)
     confidence: str = "medium"
-    observed_at: str = ""
     last_updated_at: str = ""
     id: str = ""
     source_hint: str = ""
@@ -41,6 +40,7 @@ class MemoryItem:
     stale_after: str = ""
     related_paths: list[str] = field(default_factory=list)
     related_tasks: list[str] = field(default_factory=list)
+    observed_at: str = ""
 
     @property
     def summary(self) -> str:
@@ -134,9 +134,12 @@ def load_sessions(
     *,
     max_sessions: int,
     max_bytes: int,
+    exclude_names: set[str] | None = None,
 ) -> list[tuple[str, dict[str, Any]]]:
     """Load recent YAML sessions newest-first."""
     files = sorted(raw_dir.glob("*.yaml"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if exclude_names:
+        files = [path for path in files if path.name not in exclude_names]
     loaded: list[tuple[str, dict[str, Any]]] = []
     for path in files[:max_sessions]:
         if path.stat().st_size > max_bytes:
@@ -495,9 +498,8 @@ def run_dream(
         dirs["raw"],
         max_sessions=max_sessions or config["max_sessions"],
         max_bytes=config["max_session_bytes"],
+        exclude_names=None if replay else consumed_sessions,
     )
-    if not replay:
-        sessions = [(name, data) for name, data in sessions if name not in consumed_sessions]
     session_names = [n for n, _ in sessions]
 
     merged, cand_changelog = merge_sections(
