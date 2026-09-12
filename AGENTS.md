@@ -138,7 +138,7 @@ that was not obvious from the error message. Keep entries short: date, symptom, 
 
 | Date | Symptom | Root cause | Fix / guard |
 |------|---------|------------|-------------|
-| _(none yet)_ | | | |
+| 2026-09-12 | Wiki lint crashed on a missing repository-local link outside `docs/` | `wiki_lint_scan.py` assumed every local link had a docs-relative path | Guard `docs_relative is not None` before archive/planning classification; keep a cross-root regression test |
 
 ## AI workspace assets
 
