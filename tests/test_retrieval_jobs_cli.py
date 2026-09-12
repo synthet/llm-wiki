@@ -3,9 +3,30 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from conftest import ingest_and_request, proposal
 
 from llmwiki.cli import main
+
+
+@pytest.fixture
+def node_search_backend_results(wiki, monkeypatch):
+    root, service = wiki
+    source = root / "node-search.md"
+    source.write_text(
+        "# Retrieval\n\n"
+        "This deliberately long opening keeps the distinctive query beyond the generated "
+        "paragraph heading while the immutable body contains quokka.\n",
+        encoding="utf-8",
+    )
+    service.ingest_file(source)
+    if service.rebuild_index()["backend"] != "sqlite-fts5":
+        pytest.skip("SQLite FTS5 is unavailable")
+
+    fts = service.search("quokka", include_nodes=True)
+    monkeypatch.setattr(service, "_ensure_index", lambda con: "python-lexical")
+    fallback = service.search("quokka", include_nodes=True)
+    return fts, fallback
 
 
 def test_tree_is_deterministic_bounded_and_revision_isolated(wiki):
@@ -47,6 +68,35 @@ def test_lexical_fallback_is_identified(wiki, monkeypatch):
     result = service.search("faces")
     assert result["backend"] == "python-lexical"
     assert result["results"]
+
+
+def test_lexical_fallback_searches_resolved_node_content(wiki, monkeypatch):
+    root, service = wiki
+    source = root / "fallback-node.md"
+    source.write_text(
+        "# Retrieval\n\n"
+        "This deliberately long opening keeps the distinctive query beyond the generated "
+        "paragraph heading while the immutable body contains quokka.\n",
+        encoding="utf-8",
+    )
+    ingestion = service.ingest_file(source)
+    paragraph = max(
+        service.list_nodes(ingestion["revision_id"], limit=100)["items"],
+        key=lambda node: node["depth"],
+    )
+    assert "quokka" not in paragraph["heading"].casefold()
+    monkeypatch.setattr(service, "_ensure_index", lambda con: "python-lexical")
+
+    result = service.search("quokka", include_nodes=True)
+
+    assert result["backend"] == "python-lexical"
+    assert paragraph["id"] in {node["id"] for node in result["nodes"]}
+
+
+def test_fts_and_fallback_expose_equivalent_node_matches(node_search_backend_results):
+    fts, fallback = node_search_backend_results
+
+    assert {node["id"] for node in fts["nodes"]} == {node["id"] for node in fallback["nodes"]}
 
 
 def test_idempotent_jobs_and_cancel(wiki):

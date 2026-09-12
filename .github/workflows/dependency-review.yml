@@ -10,6 +10,9 @@ permissions:
 jobs:
   dependency-review:
     name: Dependency Review
+    # The action fails before reviewing changes when the repository dependency graph is disabled.
+    # Opt in after enabling the graph by setting DEPENDENCY_REVIEW_ENABLED=true in repository variables.
+    if: vars.DEPENDENCY_REVIEW_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

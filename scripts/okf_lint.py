@@ -13,9 +13,9 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from okf_bundle import (  # noqa: E402
+    PROJECT_PROFILE_FIELDS,
     OKFDocument,
     OKFDocumentError,
-    PROJECT_PROFILE_FIELDS,
     collect_markdown_links,
     expected_resource_paths,
     is_concept_file,
