@@ -1,23 +1,39 @@
 """Shared OKF bundle parsing and link resolution for docs/ lint tools."""
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 import yaml
 
-LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-SKIP_PREFIXES = ("http://", "https://", "#", "mailto:", "file:")
+SKIP_SCHEMES = frozenset({"file", "http", "https", "mailto"})
 FRONTMATTER_DELIM = "---"
 LOG_FILENAME = "log.md"
 PROJECT_PROFILE_FIELDS = ("type", "title", "description", "resource", "tags", "timestamp")
+MAX_MARKDOWN_LINK_SPAN = 8192
 
 
 class OKFDocumentError(ValueError):
     pass
+
+
+class LinkOutcome(Enum):
+    """The security-relevant result of resolving a Markdown link."""
+
+    SKIPPED = "external_or_skipped"
+    LOCAL = "repo_local"
+    ESCAPED = "escaped_repository"
+
+
+@dataclass(frozen=True)
+class LinkResolution:
+    outcome: LinkOutcome
+    docs_relative: str | None = None
+    repo_relative: str | None = None
 
 
 @dataclass
@@ -87,31 +103,156 @@ def validate_timestamp(value: Any) -> str | None:
     return None
 
 
-def resolve_internal_link(from_file: Path, target: str, docs_root: Path) -> str | None:
-    """Resolve a markdown link to a bundle-relative path, or None if external/skipped."""
+def resolve_internal_link(
+    from_file: Path, target: str, docs_root: Path, repository_root: Path
+) -> LinkResolution:
+    """Resolve a link while preserving both graph and existence-check paths."""
     t = target.strip()
-    if not t or any(t.startswith(p) for p in SKIP_PREFIXES):
-        return None
-    t = t.split("#")[0].strip()
-    if not t or t.endswith("/"):
-        return None
+    if not t or t.startswith("#") or t.startswith("//"):
+        return LinkResolution(LinkOutcome.SKIPPED)
+    parsed = urlsplit(t)
+    if parsed.scheme.lower() in SKIP_SCHEMES or parsed.netloc:
+        return LinkResolution(LinkOutcome.SKIPPED)
+    # Unknown URI schemes are external too; a one-character scheme is allowed so
+    # Windows-like paths cannot accidentally be interpreted as repository links.
+    if parsed.scheme:
+        return LinkResolution(LinkOutcome.SKIPPED)
+    path_part = unquote(parsed.path).strip()
+    if not path_part:
+        return LinkResolution(LinkOutcome.SKIPPED)
 
     docs_root = docs_root.resolve()
-    if t.startswith("/"):
-        rel = t.lstrip("/")
+    repository_root = repository_root.resolve()
+    if path_part.startswith("/"):
+        rel = path_part.lstrip("/")
         candidate = (docs_root / rel).resolve()
     else:
-        candidate = (from_file.parent / t).resolve()
+        candidate = (from_file.resolve().parent / path_part).resolve()
 
     try:
-        return candidate.relative_to(docs_root).as_posix()
+        repo_relative = candidate.relative_to(repository_root).as_posix()
     except ValueError:
-        return None
+        return LinkResolution(LinkOutcome.ESCAPED)
+
+    try:
+        docs_relative = candidate.relative_to(docs_root).as_posix()
+    except ValueError:
+        docs_relative = None
+    return LinkResolution(LinkOutcome.LOCAL, docs_relative, repo_relative)
 
 
-def collect_markdown_links(text: str, from_file: Path, docs_root: Path) -> list[tuple[str, str | None]]:
-    links: list[tuple[str, str | None]] = []
-    for match in LINK_RE.finditer(text):
-        raw = match.group(1).strip()
-        links.append((raw, resolve_internal_link(from_file, raw, docs_root)))
-    return links
+def _unescape_destination(value: str) -> str:
+    """Remove Markdown backslash escapes without interpreting other escapes."""
+    output: list[str] = []
+    escaped = False
+    for char in value:
+        if escaped:
+            output.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        else:
+            output.append(char)
+    if escaped:
+        output.append("\\")
+    return "".join(output)
+
+
+def scan_markdown_link_destinations(text: str) -> list[str]:
+    """Scan inline Markdown links with a bounded candidate span."""
+    destinations: list[str] = []
+    length = len(text)
+    i = 0
+    while i < length:
+        if text[i] != "[" or (i and text[i - 1] == "\\"):
+            i += 1
+            continue
+        candidate_end = min(length, i + MAX_MARKDOWN_LINK_SPAN)
+        label_end = i + 1
+        while label_end < candidate_end:
+            if text[label_end] == "]" and text[label_end - 1] != "\\":
+                break
+            label_end += 1
+        opening = label_end + 1
+        if opening >= candidate_end or text[opening] != "(":
+            i += 1
+            continue
+
+        cursor = opening + 1
+        while cursor < candidate_end and text[cursor].isspace():
+            cursor += 1
+        if cursor >= candidate_end:
+            i += 1
+            continue
+
+        if text[cursor] == "<":
+            start = cursor + 1
+            cursor = start
+            while cursor < candidate_end and not (
+                text[cursor] == ">" and text[cursor - 1] != "\\"
+            ):
+                cursor += 1
+            if cursor >= candidate_end:
+                i = opening + 1
+                continue
+            destination = text[start:cursor]
+            cursor += 1
+        else:
+            start = cursor
+            depth = 0
+            escaped = False
+            while cursor < candidate_end:
+                char = text[cursor]
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == "(":
+                    depth += 1
+                elif char == ")":
+                    if depth == 0:
+                        break
+                    depth -= 1
+                elif char.isspace() and depth == 0:
+                    break
+                cursor += 1
+            destination = text[start:cursor]
+
+        # Skip the optional title and ensure the link itself is closed. Quotes
+        # suppress parentheses so titles such as "why (now)" remain well formed.
+        quote: str | None = None
+        escaped = False
+        title_depth = 0
+        while cursor < candidate_end:
+            char = text[cursor]
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif quote:
+                if char == quote:
+                    quote = None
+            elif char in {'"', "'"}:
+                quote = char
+            elif char == "(":
+                title_depth += 1
+            elif char == ")":
+                if title_depth == 0:
+                    break
+                title_depth -= 1
+            cursor += 1
+        if cursor < candidate_end and destination:
+            destinations.append(_unescape_destination(destination))
+            i = cursor + 1
+        else:
+            i = opening + 1
+    return destinations
+
+
+def collect_markdown_links(
+    text: str, from_file: Path, docs_root: Path, repository_root: Path
+) -> list[tuple[str, LinkResolution]]:
+    return [
+        (target, resolve_internal_link(from_file, target, docs_root, repository_root))
+        for target in scan_markdown_link_destinations(text)
+    ]

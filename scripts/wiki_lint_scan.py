@@ -9,21 +9,21 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from okf_bundle import LINK_RE, resolve_internal_link  # noqa: E402
+from okf_bundle import LinkOutcome, collect_markdown_links  # noqa: E402
 
 HUB_NAMES = ("INDEX.md", "README.md")
-def lint_docs(docs_root: Path) -> dict:
+def lint_docs(docs_root: Path, repository_root: Path | None = None) -> dict:
     docs_root = docs_root.resolve()
+    repository_root = (repository_root or docs_root.parent).resolve()
     all_md = {p.relative_to(docs_root).as_posix() for p in docs_root.rglob("*.md")}
     hubs = [p for p in docs_root.rglob("*.md") if p.name in HUB_NAMES]
 
     indexed: set[str] = set()
     for hub in hubs:
         text = hub.read_text(encoding="utf-8", errors="replace")
-        for m in LINK_RE.finditer(text):
-            rel = resolve_internal_link(hub, m.group(1), docs_root)
-            if rel:
-                indexed.add(rel)
+        for _, resolved in collect_markdown_links(text, hub, docs_root, repository_root):
+            if resolved.outcome is LinkOutcome.LOCAL and resolved.docs_relative:
+                indexed.add(resolved.docs_relative)
 
     broken_docs: list[tuple[str, str]] = []
     broken_code: list[tuple[str, str]] = []
@@ -32,14 +32,17 @@ def lint_docs(docs_root: Path) -> dict:
     for md in sorted(all_md):
         p = docs_root / md
         text = p.read_text(encoding="utf-8", errors="replace")
-        for m in LINK_RE.finditer(text):
-            raw = m.group(1).strip()
-            rel = resolve_internal_link(p, raw, docs_root)
-            if rel is None:
+        for raw, resolved in collect_markdown_links(text, p, docs_root, repository_root):
+            if resolved.outcome is LinkOutcome.SKIPPED:
                 continue
+            if resolved.outcome is LinkOutcome.ESCAPED:
+                broken_code.append((md, raw))
+                continue
+            rel = resolved.docs_relative
             if rel in all_md and rel != md:
                 inbound[rel].add(md)
-            target = docs_root / rel
+            assert resolved.repo_relative is not None
+            target = repository_root / resolved.repo_relative
             if target.exists():
                 continue
             if raw.startswith("../") and "modules/" in raw:
