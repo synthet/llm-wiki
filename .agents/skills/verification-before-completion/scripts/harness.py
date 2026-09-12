@@ -115,11 +115,11 @@ def main(argv: list[str] | None = None) -> int:
 
     lines = ["## Verification"]
     if result["runs"]:
-        for entry, run in zip(selected, result["runs"]):
+        for entry, run in zip(selected, result["runs"], strict=True):
             mark = "✅" if run["ok"] else "❌"
             lines.append(f"- {mark} `{run['command']}` — {entry.get('claim', entry['id'])} (exit {run['exit_code']})")
             if not run["ok"]:
-                lines.append(f"  - next: inspect stderr_tail / fix before claiming success")
+                lines.append("  - next: inspect stderr_tail / fix before claiming success")
     else:
         for entry in selected:
             lines.append(

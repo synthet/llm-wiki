@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -21,8 +21,8 @@ def prune_old_sessions(raw_dir: Path, retention_days: int) -> list[str]:
 
 
 def session_timestamp_slug() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H%M%SZ")
 
 
 def dream_timestamp_slug() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M")
+    return datetime.now(UTC).strftime("%Y-%m-%d-%H%M")

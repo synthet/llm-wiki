@@ -24,7 +24,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.ci.secret_detection import SKIP_NAME_PARTS, SKIP_SUFFIXES, scan_file as scan_secret_file
+from scripts.ci.secret_detection import (  # noqa: E402
+    SKIP_NAME_PARTS,
+    SKIP_SUFFIXES,
+)
+from scripts.ci.secret_detection import (  # noqa: E402
+    scan_file as scan_secret_file,
+)
 
 SKIP_PATH_PREFIXES = ("scripts/ci/check_secrets.py",)  # this file contains the patterns
 
