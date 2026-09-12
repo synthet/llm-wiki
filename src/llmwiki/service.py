@@ -783,7 +783,10 @@ class WikiService:
         with self.store.transaction() as con:
             backend = self._rebuild_index(con)
             claim_count = con.execute("SELECT COUNT(*) FROM claim_revisions WHERE is_current=1").fetchone()[0]
-            node_count = con.execute("SELECT COUNT(*) FROM document_nodes").fetchone()[0]
+            node_count = con.execute(
+                """SELECT COUNT(*) FROM document_nodes n JOIN source_revisions r
+                   ON r.id=n.source_revision_id JOIN sources s ON s.current_revision_id=r.id"""
+            ).fetchone()[0]
         return {"backend": backend, "claims_indexed": claim_count, "nodes_indexed": node_count}
 
     @staticmethod
@@ -977,6 +980,7 @@ class WikiService:
         rows = con.execute(
             """SELECT n.*, r.extracted_text, r.extraction_json
                FROM document_nodes n JOIN source_revisions r ON r.id=n.source_revision_id
+               JOIN sources s ON s.current_revision_id=r.id
                ORDER BY n.source_revision_id, n.document_order"""
         )
         for row in rows:
