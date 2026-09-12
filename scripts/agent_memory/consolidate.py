@@ -5,13 +5,12 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from scripts.agent_memory import yaml_compat as yaml
-
 from scripts.agent_memory import schema
+from scripts.agent_memory import yaml_compat as yaml
 from scripts.agent_memory.paths import load_config
 
 _NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
@@ -23,7 +22,7 @@ def normalize_text(text: str) -> str:
 
 
 def _today() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return datetime.now(UTC).strftime("%Y-%m-%d")
 
 
 @dataclass
@@ -51,7 +50,7 @@ class MemoryItem:
 
 
 def _stable_id(section: str, text: str) -> str:
-    identity = f"{section}\0{normalize_text(text)}".encode("utf-8")
+    identity = f"{section}\0{normalize_text(text)}".encode()
     digest = hashlib.sha1(identity).hexdigest()[:12]
     return f"mem-{digest}"
 
@@ -214,7 +213,7 @@ def merge_sections(
         for section, items in base.items()
     }
     index: dict[str, MemoryItem] = {}
-    for section, items in merged.items():
+    for items in merged.values():
         for item in items:
             index[item.key] = item
 
@@ -374,7 +373,7 @@ def find_stale_items(
     staleness_days: int,
 ) -> list[str]:
     """Return changelog entries for items whose last_updated_at is older than staleness_days."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     entries: list[str] = []
     for section, items in sections.items():
         for item in items:
@@ -518,7 +517,7 @@ def run_dream(
     slug = dream_timestamp_slug()
     item_counts = {s: len(merged[s]) for s in schema.SECTION_ORDER}
     front_matter = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source_sessions": session_names,
         "item_counts": item_counts,
     }
