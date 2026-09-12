@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -109,7 +110,7 @@ def test_repeated_searches_do_not_rebuild_indexes(wiki, monkeypatch):
     def unexpected_rebuild(con):
         raise AssertionError("search rebuilt the index")
 
-    monkeypatch.setattr(service, "_rebuild_index", unexpected_rebuild)
+    monkeypatch.setattr(type(service), "_rebuild_index", staticmethod(unexpected_rebuild))
     assert service.search("faces")["results"]
     assert service.search("faces")["results"]
 
@@ -123,11 +124,15 @@ def test_read_only_search_does_not_change_canonical_or_index_state(wiki):
         before = dict(con.execute("SELECT key, value FROM meta").fetchall())
         traces_before = con.execute("SELECT COUNT(*) FROM retrieval_traces").fetchone()[0]
 
+    observer = sqlite3.connect(service.store.db_path)
+    data_version_before = observer.execute("PRAGMA data_version").fetchone()[0]
     result = service.search("faces")
 
     with service.store.reader() as con:
         assert dict(con.execute("SELECT key, value FROM meta").fetchall()) == before
         assert con.execute("SELECT COUNT(*) FROM retrieval_traces").fetchone()[0] == traces_before
+    assert observer.execute("PRAGMA data_version").fetchone()[0] == data_version_before
+    observer.close()
     assert result["trace"]["persisted"] is False
 
 
