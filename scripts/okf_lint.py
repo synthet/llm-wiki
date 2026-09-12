@@ -14,6 +14,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 from okf_bundle import (  # noqa: E402
     PROJECT_PROFILE_FIELDS,
+    LinkOutcome,
     OKFDocument,
     OKFDocumentError,
     collect_markdown_links,
@@ -55,12 +56,14 @@ class BundleReport:
 def lint_bundle(
     docs_root: Path,
     *,
+    repository_root: Path | None = None,
     profile: str = "project",
     bundle_name: str = "docs",
     exclude_prefixes: tuple[str, ...] = ("archive/",),
     only_paths: frozenset[str] | None = None,
 ) -> BundleReport:
     docs_root = docs_root.resolve()
+    repository_root = (repository_root or docs_root.parent).resolve()
     report = BundleReport(
         bundle_root=str(docs_root),
         bundle_name=bundle_name,
@@ -68,7 +71,6 @@ def lint_bundle(
     )
     all_md = sorted(p.relative_to(docs_root).as_posix() for p in docs_root.rglob("*.md"))
     report.total_md = len(all_md)
-    all_md_set = set(all_md)
 
     scan_paths = all_md
     if only_paths is not None:
@@ -99,20 +101,31 @@ def lint_bundle(
         else:
             _check_project(report, rel, doc, bundle_name)
 
-        for raw, resolved in collect_markdown_links(text, path, docs_root):
-            if resolved is None:
+        for raw, resolved in collect_markdown_links(text, path, docs_root, repository_root):
+            if resolved.outcome is LinkOutcome.SKIPPED:
                 continue
-            if resolved not in all_md_set:
-                target = docs_root / resolved
-                if not target.exists():
-                    report.findings.append(
-                        LintFinding(
-                            rel,
-                            "broken_internal_link",
-                            f"Link target missing: {raw!r} -> {resolved}",
-                            "warning",
-                        )
+            if resolved.outcome is LinkOutcome.ESCAPED:
+                report.findings.append(
+                    LintFinding(
+                        rel,
+                        "link_escapes_repository",
+                        f"Link target escapes repository: {raw!r}",
+                        "warning",
                     )
+                )
+                continue
+            assert resolved.repo_relative is not None
+            target = repository_root / resolved.repo_relative
+            if not target.exists():
+                display_target = resolved.docs_relative or resolved.repo_relative
+                report.findings.append(
+                    LintFinding(
+                        rel,
+                        "broken_internal_link",
+                        f"Link target missing: {raw!r} -> {display_target}",
+                        "warning",
+                    )
+                )
 
     return report
 
