@@ -20,6 +20,11 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=None)
     parser.add_argument("--max-sessions", type=int, default=None)
     parser.add_argument(
+        "--replay",
+        action="store_true",
+        help="Replay sessions already recorded in promoted memory provenance",
+    )
+    parser.add_argument(
         "--staleness-days",
         type=int,
         default=None,
@@ -33,6 +38,7 @@ def main() -> int:
             repo,
             max_sessions=args.max_sessions,
             staleness_days=args.staleness_days,
+            replay=args.replay,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

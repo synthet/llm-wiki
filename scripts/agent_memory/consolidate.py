@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -39,6 +40,7 @@ class MemoryItem:
     stale_after: str = ""
     related_paths: list[str] = field(default_factory=list)
     related_tasks: list[str] = field(default_factory=list)
+    observed_at: str = ""
 
     @property
     def summary(self) -> str:
@@ -67,10 +69,11 @@ def _apply_metadata(item: MemoryItem, metadata: dict[str, Any]) -> None:
     item.id = str(metadata.get("id") or item.id or _stable_id(item.section, item.text))
     item.source_hint = str(metadata.get("source_hint") or item.source_hint or "")
     item.confidence = str(metadata.get("confidence") or item.confidence or "medium")
+    item.observed_at = str(metadata.get("observed_at") or item.observed_at or "")
+    item.last_updated_at = str(metadata.get("last_updated_at") or item.last_updated_at or "")
+    item.sources = _merge_unique(item.sources, _as_list(metadata.get("observation_sessions")))
     item.verified_at = str(metadata.get("verified_at") or item.verified_at or "")
-    item.verification_status = str(
-        metadata.get("verification_status") or item.verification_status or "unverified"
-    )
+    item.verification_status = str(metadata.get("verification_status") or item.verification_status or "unverified")
     item.stale_after = str(metadata.get("stale_after") or item.stale_after or "")
     item.related_paths = _merge_unique(item.related_paths, _as_list(metadata.get("related_paths")))
     item.related_tasks = _merge_unique(item.related_tasks, _as_list(metadata.get("related_tasks")))
@@ -131,9 +134,12 @@ def load_sessions(
     *,
     max_sessions: int,
     max_bytes: int,
+    exclude_names: set[str] | None = None,
 ) -> list[tuple[str, dict[str, Any]]]:
     """Load recent YAML sessions newest-first."""
     files = sorted(raw_dir.glob("*.yaml"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if exclude_names:
+        files = [path for path in files if path.name not in exclude_names]
     loaded: list[tuple[str, dict[str, Any]]] = []
     for path in files[:max_sessions]:
         if path.stat().st_size > max_bytes:
@@ -145,9 +151,7 @@ def load_sessions(
     return loaded
 
 
-def _item_from_candidate(
-    cand: dict[str, Any], session_name: str
-) -> MemoryItem | None:
+def _item_from_candidate(cand: dict[str, Any], session_name: str, session: dict[str, Any]) -> MemoryItem | None:
     cat = cand.get("category")
     section = schema.CATEGORY_TO_SECTION.get(cat)
     if not section:
@@ -156,23 +160,33 @@ def _item_from_candidate(
     if not text:
         return None
     source_hint = str(cand.get("source_hint") or session_name)
-    verified_at = str(cand.get("verified_at") or _today())
+    observed_at = _observation_date(session.get("timestamp")) or _today()
     return MemoryItem(
         text=str(cand.get("summary") or text),
         section=section,
         sources=[session_name],
         confidence=cand.get("confidence") or "medium",
-        last_updated_at=_today(),
+        observed_at=observed_at,
+        last_updated_at=observed_at,
         id=str(cand.get("id") or _stable_id(section, text)),
         source_hint=source_hint,
-        verified_at=verified_at,
-        verification_status=str(cand.get("verification_status") or "verified"),
+        verified_at=str(cand.get("verified_at") or ""),
+        verification_status=str(cand.get("verification_status") or "unverified"),
         stale_after=str(cand.get("stale_after") or ""),
         related_paths=_as_list(cand.get("related_paths")),
-        related_tasks=_as_list(
-            cand.get("related_tasks") or cand.get("related_issues") or cand.get("related_prs")
-        ),
+        related_tasks=_as_list(cand.get("related_tasks") or cand.get("related_issues") or cand.get("related_prs")),
     )
+
+
+def _observation_date(value: Any) -> str:
+    """Return the date portion of a valid session timestamp."""
+    if not value:
+        return ""
+    text = str(value)
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return ""
 
 
 def merge_sections(
@@ -195,18 +209,19 @@ def merge_sections(
     merged = {
         section: [
             MemoryItem(
-                i.text,
-                i.section,
-                list(i.sources),
-                i.confidence,
-                i.last_updated_at,
-                i.id,
-                i.source_hint,
-                i.verified_at,
-                i.verification_status,
-                i.stale_after,
-                list(i.related_paths),
-                list(i.related_tasks),
+                text=i.text,
+                section=i.section,
+                sources=list(i.sources),
+                confidence=i.confidence,
+                observed_at=i.observed_at,
+                last_updated_at=i.last_updated_at,
+                id=i.id,
+                source_hint=i.source_hint,
+                verified_at=i.verified_at,
+                verification_status=i.verification_status,
+                stale_after=i.stale_after,
+                related_paths=list(i.related_paths),
+                related_tasks=list(i.related_tasks),
             )
             for i in items
         ]
@@ -223,24 +238,24 @@ def merge_sections(
         for cand in data.get("memory_candidates") or []:
             if not isinstance(cand, dict):
                 continue
-            new_item = _item_from_candidate(cand, session_name)
+            new_item = _item_from_candidate(cand, session_name, data)
             if not new_item:
                 continue
             existing = index.get(new_item.key)
             if existing:
-                for src in new_item.sources:
-                    if src not in existing.sources:
-                        existing.sources.append(src)
+                new_observation = any(src not in existing.sources for src in new_item.sources)
+                if not new_observation:
+                    continue
+                existing.sources = _merge_unique(existing.sources, new_item.sources)
                 _merge_item_metadata(existing, new_item)
-                existing.last_updated_at = _today()
+                if new_item.observed_at > existing.observed_at:
+                    existing.observed_at = new_item.observed_at
+                    existing.last_updated_at = new_item.observed_at
                 continue
             # Contradiction: same normalized text in different section?
             cross = _find_cross_section_conflict(merged, new_item)
             if cross:
-                msg = (
-                    f'"{new_item.text}" conflicts with existing in "{cross.section}" '
-                    f"(from: {session_name})"
-                )
+                msg = f'"{new_item.text}" conflicts with existing in "{cross.section}" (from: {session_name})'
                 changelog["uncertain"].append(msg)
                 oq = MemoryItem(
                     text=f"Resolve: {new_item.text} vs {cross.text}",
@@ -280,32 +295,21 @@ def _merge_unique(left: list[str], right: list[str]) -> list[str]:
 def _merge_item_metadata(existing: MemoryItem, new_item: MemoryItem) -> None:
     if not existing.id:
         existing.id = new_item.id
-    if (
-        new_item.source_hint
-        and new_item.source_hint not in existing.source_hint.split("; ")
-    ):
-        existing.source_hint = "; ".join(
-            [v for v in [existing.source_hint, new_item.source_hint] if v]
-        )
-    if schema.confidence_rank(new_item.confidence) > schema.confidence_rank(
-        existing.confidence
-    ):
+    if new_item.source_hint and new_item.source_hint not in existing.source_hint.split("; "):
+        existing.source_hint = "; ".join([v for v in [existing.source_hint, new_item.source_hint] if v])
+    if schema.confidence_rank(new_item.confidence) > schema.confidence_rank(existing.confidence):
         existing.confidence = new_item.confidence
     if new_item.verified_at and new_item.verified_at > existing.verified_at:
         existing.verified_at = new_item.verified_at
     if new_item.verification_status == "verified":
         existing.verification_status = new_item.verification_status
-    if new_item.stale_after and (
-        not existing.stale_after or new_item.stale_after > existing.stale_after
-    ):
+    if new_item.stale_after and (not existing.stale_after or new_item.stale_after > existing.stale_after):
         existing.stale_after = new_item.stale_after
     existing.related_paths = _merge_unique(existing.related_paths, new_item.related_paths)
     existing.related_tasks = _merge_unique(existing.related_tasks, new_item.related_tasks)
 
 
-def _find_cross_section_conflict(
-    merged: dict[str, list[MemoryItem]], new_item: MemoryItem
-) -> MemoryItem | None:
+def _find_cross_section_conflict(merged: dict[str, list[MemoryItem]], new_item: MemoryItem) -> MemoryItem | None:
     norm = normalize_text(new_item.text)
     for section, items in merged.items():
         if section == new_item.section:
@@ -377,6 +381,13 @@ def find_stale_items(
     entries: list[str] = []
     for section, items in sections.items():
         for item in items:
+            explicit_stale = False
+            if item.stale_after:
+                with suppress(ValueError):
+                    explicit_stale = today >= datetime.strptime(item.stale_after, "%Y-%m-%d").date()
+            if explicit_stale:
+                entries.append(f"{item.text} (stale after: {item.stale_after}) [section: {section}]")
+                continue
             if not item.last_updated_at:
                 continue
             try:
@@ -384,20 +395,8 @@ def find_stale_items(
             except ValueError:
                 continue
             age = (today - updated).days
-            explicit_stale = False
-            if item.stale_after:
-                try:
-                    explicit_stale = today >= datetime.strptime(
-                        item.stale_after, "%Y-%m-%d"
-                    ).date()
-                except ValueError:
-                    explicit_stale = False
-            if age >= staleness_days or explicit_stale:
-                reason = (
-                    f"stale after: {item.stale_after}"
-                    if explicit_stale
-                    else f"last updated: {item.last_updated_at}, {age} days ago"
-                )
+            if age >= staleness_days:
+                reason = f"last updated: {item.last_updated_at}, {age} days ago"
                 entries.append(f"{item.text} ({reason}) [section: {section}]")
     return entries
 
@@ -434,17 +433,16 @@ def render_memory_markdown(
                     "summary": item.summary,
                     "source_hint": item.source_hint,
                     "confidence": item.confidence,
+                    "observation_sessions": item.sources,
+                    "observed_at": item.observed_at,
+                    "last_updated_at": item.last_updated_at,
                     "verified_at": item.verified_at,
                     "verification_status": item.verification_status,
                     "stale_after": item.stale_after,
                     "related_paths": item.related_paths,
                     "related_tasks": item.related_tasks,
                 }
-                rendered = (
-                    yaml.safe_dump(metadata, sort_keys=False, default_flow_style=False)
-                    .rstrip()
-                    .splitlines()
-                )
+                rendered = yaml.safe_dump(metadata, sort_keys=False, default_flow_style=False).rstrip().splitlines()
                 lines.extend(f"  {line}" for line in rendered)
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -478,6 +476,7 @@ def run_dream(
     *,
     max_sessions: int | None = None,
     staleness_days: int | None = None,
+    replay: bool = False,
 ) -> tuple[Path, Path]:
     """Generate dream + changelog paths. Never writes memory.md."""
     config = load_config(repo_root)
@@ -493,10 +492,13 @@ def run_dream(
         base_content = dirs["memory"].read_text(encoding="utf-8")
 
     base_sections = parse_memory_markdown(base_content)
+    base_front_matter = parse_front_matter(base_content)
+    consumed_sessions = set(_as_list(base_front_matter.get("consumed_sessions")))
     sessions = load_sessions(
         dirs["raw"],
         max_sessions=max_sessions or config["max_sessions"],
         max_bytes=config["max_session_bytes"],
+        exclude_names=None if replay else consumed_sessions,
     )
     session_names = [n for n, _ in sessions]
 
@@ -519,6 +521,7 @@ def run_dream(
     front_matter = {
         "generated_at": datetime.now(UTC).isoformat(),
         "source_sessions": session_names,
+        "consumed_sessions": sorted(consumed_sessions.union(session_names)),
         "item_counts": item_counts,
     }
     dream_path = dirs["dreams"] / f"{slug}.md"
@@ -552,6 +555,20 @@ def extract_body_from_dream(content: str) -> str:
     return body
 
 
+def parse_front_matter(content: str) -> dict[str, Any]:
+    """Parse a document's leading YAML front matter, if present."""
+    if not content.startswith("---"):
+        return {}
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    try:
+        metadata = yaml.safe_load(parts[1]) or {}
+    except yaml.YAMLError:
+        return {}
+    return metadata if isinstance(metadata, dict) else {}
+
+
 def promote_dream(repo_root: Path, dream_path: Path, *, force: bool = False) -> Path:
     """Promote dream to memory.md with archive."""
     memory_path = repo_root / ".agent-memory" / "memory.md"
@@ -560,15 +577,15 @@ def promote_dream(repo_root: Path, dream_path: Path, *, force: bool = False) -> 
 
     changelog_path = dream_path.with_name(f"{dream_path.stem}-changelog.md")
     if not changelog_path.is_file() and not force:
-        raise FileNotFoundError(
-            f"Changelog missing: {changelog_path}. Use --force to promote anyway."
-        )
+        raise FileNotFoundError(f"Changelog missing: {changelog_path}. Use --force to promote anyway.")
 
     content = dream_path.read_text(encoding="utf-8")
     from scripts.agent_memory.secrets import assert_no_secrets
 
     assert_no_secrets(content, context="dream promotion")
     body = extract_body_from_dream(content)
+    dream_metadata = parse_front_matter(content)
+    promoted_metadata = {"consumed_sessions": sorted(_as_list(dream_metadata.get("consumed_sessions")))}
 
     from scripts.agent_memory.limits import dream_timestamp_slug
 
@@ -577,7 +594,8 @@ def promote_dream(repo_root: Path, dream_path: Path, *, force: bool = False) -> 
         archive_path = archive_dir / archive_name
         archive_path.write_text(memory_path.read_text(encoding="utf-8"), encoding="utf-8")
 
-    memory_path.write_text(body, encoding="utf-8")
+    promoted = "---\n" + yaml.safe_dump(promoted_metadata, default_flow_style=False).strip() + "\n---\n\n" + body
+    memory_path.write_text(promoted, encoding="utf-8")
     return memory_path
 
 
