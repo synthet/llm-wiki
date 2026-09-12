@@ -19,6 +19,7 @@ jobs:
         python: ["3.11", "3.14"]
     env:
       PYTHONUTF8: "1"
+      PIP_CONSTRAINT: .github/ci-constraints.txt
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

@@ -1,0 +1,2 @@
+# Keep CI's lint behavior aligned with the version used to validate this repository.
+ruff==0.15.12
