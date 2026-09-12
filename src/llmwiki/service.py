@@ -894,8 +894,18 @@ class WikiService:
             return items
         tokens = set(WORD_RE.findall(query.casefold()))
         candidates: list[tuple[int, sqlite3.Row]] = []
-        for row in con.execute("SELECT * FROM document_nodes ORDER BY source_revision_id, document_order"):
-            score = sum(row["heading"].casefold().count(token) for token in tokens)
+        rows = con.execute(
+            """SELECT n.*, r.extracted_text, r.extraction_json
+               FROM document_nodes n JOIN source_revisions r ON r.id=n.source_revision_id
+               ORDER BY n.source_revision_id, n.document_order"""
+        )
+        for row in rows:
+            try:
+                content = self._resolve_locator(row, json.loads(row["locator_json"]))
+            except LLMWikiError:
+                continue
+            words = WORD_RE.findall((row["heading"] + " " + content).casefold())
+            score = sum(words.count(token) for token in tokens)
             if score:
                 candidates.append((score, row))
         candidates.sort(key=lambda item: (-item[0], item[1]["id"]))
