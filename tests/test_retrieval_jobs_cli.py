@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -97,6 +98,67 @@ def test_fts_and_fallback_expose_equivalent_node_matches(node_search_backend_res
     fts, fallback = node_search_backend_results
 
     assert {node["id"] for node in fts["nodes"]} == {node["id"] for node in fallback["nodes"]}
+
+
+def test_repeated_searches_do_not_rebuild_indexes(wiki, monkeypatch):
+    root, service = wiki
+    _, _, request, leaf = ingest_and_request(root, service)
+    claim = service.compile_apply(proposal(request, leaf))["claim_revision_ids"][0]
+    service.review(claim, "approve", reviewer="R", note="Checked")
+
+    def unexpected_rebuild(con):
+        raise AssertionError("search rebuilt the index")
+
+    monkeypatch.setattr(service, "_rebuild_index", unexpected_rebuild)
+    assert service.search("faces")["results"]
+    assert service.search("faces")["results"]
+
+
+def test_read_only_search_does_not_change_canonical_or_index_state(wiki):
+    root, service = wiki
+    _, _, request, leaf = ingest_and_request(root, service)
+    claim = service.compile_apply(proposal(request, leaf))["claim_revision_ids"][0]
+    service.review(claim, "approve", reviewer="R", note="Checked")
+    with service.store.reader() as con:
+        before = dict(con.execute("SELECT key, value FROM meta").fetchall())
+        traces_before = con.execute("SELECT COUNT(*) FROM retrieval_traces").fetchone()[0]
+
+    result = service.search("faces")
+
+    with service.store.reader() as con:
+        assert dict(con.execute("SELECT key, value FROM meta").fetchall()) == before
+        assert con.execute("SELECT COUNT(*) FROM retrieval_traces").fetchone()[0] == traces_before
+    assert result["trace"]["persisted"] is False
+
+
+def test_concurrent_search_readers_are_supported(wiki):
+    root, service = wiki
+    _, _, request, leaf = ingest_and_request(root, service)
+    claim = service.compile_apply(proposal(request, leaf))["claim_revision_ids"][0]
+    service.review(claim, "approve", reviewer="R", note="Checked")
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(lambda _: service.search("faces"), range(8)))
+
+    assert all(result["results"] for result in results)
+
+
+def test_explicit_rebuild_restores_out_of_date_index(wiki):
+    root, service = wiki
+    _, _, request, leaf = ingest_and_request(root, service)
+    claim = service.compile_apply(proposal(request, leaf))["claim_revision_ids"][0]
+    service.review(claim, "approve", reviewer="R", note="Checked")
+    with service.store.transaction() as con:
+        con.execute("DELETE FROM claim_fts WHERE id=?", (claim,))
+        con.execute("UPDATE meta SET value='-1' WHERE key='search_index_state_version'")
+
+    stale = service.search("faces")
+    assert stale["backend"] == "python-lexical"
+    rebuilt = service.rebuild_index()
+
+    assert rebuilt["backend"] == "sqlite-fts5"
+    assert service.search("faces")["backend"] == "sqlite-fts5"
+    assert service.search("faces")["results"]
 
 
 def test_idempotent_jobs_and_cancel(wiki):

@@ -135,6 +135,8 @@ class WikiService:
                     )
                     self._mark_revision_dependents_stale(con, previous_revision_id)
                     self.store.bump_state(con)
+                    self._sync_source_node_index(con, logical_id)
+                    self._mark_index_current(con)
                 return {
                     "source_id": logical_id,
                     "revision_id": duplicate["id"],
@@ -173,6 +175,8 @@ class WikiService:
             if previous_revision_id and previous_revision_id != revision_id:
                 self._mark_revision_dependents_stale(con, previous_revision_id)
             self.store.bump_state(con)
+            self._sync_source_node_index(con, logical_id)
+            self._mark_index_current(con)
         return {
             "source_id": logical_id,
             "revision_id": revision_id,
@@ -463,6 +467,7 @@ class WikiService:
                     raise error("stale_compilation_result", "A compilation source revision changed.")
             created: list[str] = []
             reused: list[str] = []
+            changed_claims: list[str] = []
             for proposal in result["claims"]:
                 entity_id = self._resolve_or_create_entity(con, proposal["entity"])
                 text = proposal["text"].strip()
@@ -514,6 +519,7 @@ class WikiService:
                         "UPDATE claim_revisions SET status='superseded', is_current=0 WHERE id=?",
                         (supersedes,),
                     )
+                    changed_claims.append(supersedes)
                 else:
                     claim_id = str(uuid.uuid4())
                     con.execute(
@@ -560,6 +566,8 @@ class WikiService:
                 created.append(claim_revision_id)
             if created:
                 self.store.bump_state(con)
+                self._sync_claim_index(con, [*changed_claims, *created])
+                self._mark_index_current(con)
             con.execute(
                 """UPDATE compilation_runs SET status='completed', result_json=?, usage_json=?,
                    completed_at=? WHERE id=?""",
@@ -681,6 +689,7 @@ class WikiService:
                 ),
             )
             self.store.bump_state(con)
+            self._mark_index_current(con)
         return {
             "review_event_id": event_id,
             "claim_revision_id": claim_revision_id,
@@ -703,7 +712,7 @@ class WikiService:
         allowed = {"candidate", "reviewed", "disputed", "stale", "superseded", "retracted"}
         if not statuses or any(item not in allowed for item in statuses):
             raise error("invalid_status_filter", "Search contains an unknown claim status.")
-        with self.store.transaction() as con:
+        with self.store.reader() as con:
             backend = self._ensure_index(con)
             if backend == "sqlite-fts5":
                 results = self._search_fts(con, query, statuses, limit)
@@ -713,26 +722,21 @@ class WikiService:
             if include_nodes:
                 selected_nodes = self._search_nodes(con, query, limit=min(limit * 2, 50), backend=backend)
             trace_id = str(uuid.uuid4())
-            con.execute(
-                """INSERT INTO retrieval_traces(id, query, method, backend, selected_nodes_json,
-                   decision_summary, result_json, created_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    trace_id,
-                    query,
-                    "lexical-hierarchical" if include_nodes else "lexical",
-                    backend,
-                    canonical_json([item["id"] for item in selected_nodes]),
-                    "Selected by deterministic lexical score; no hidden reasoning recorded.",
-                    canonical_json(results),
-                    utc_now(),
-                ),
-            )
+            trace = {
+                "id": trace_id,
+                "method": "lexical-hierarchical" if include_nodes else "lexical",
+                "backend": backend,
+                "selected_node_ids": [item["id"] for item in selected_nodes[:50]],
+                "result_ids": [item["id"] for item in results[:100]],
+                "persisted": False,
+            }
         return {
             "query": query,
             "backend": backend,
             "results": results,
             "nodes": selected_nodes,
             "trace_id": trace_id,
+            "trace": trace,
             "insufficient": not bool(results or selected_nodes),
         }
 
@@ -784,20 +788,37 @@ class WikiService:
 
     @staticmethod
     def _ensure_index(con: sqlite3.Connection) -> str:
-        return WikiService._rebuild_index(con)
+        metadata = dict(
+            con.execute(
+                "SELECT key, value FROM meta WHERE key IN ('canonical_state_version', "
+                "'search_index_state_version', 'search_index_backend')"
+            ).fetchall()
+        )
+        has_tables = all(
+            con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()
+            for name in ("claim_fts", "node_fts")
+        )
+        if (
+            metadata.get("search_index_backend") == "sqlite-fts5"
+            and metadata.get("search_index_state_version") == metadata.get("canonical_state_version")
+            and has_tables
+        ):
+            return "sqlite-fts5"
+        return "python-lexical"
 
     @staticmethod
     def _rebuild_index(con: sqlite3.Connection) -> str:
         try:
-            con.execute("DROP TABLE IF EXISTS claim_fts")
-            con.execute("DROP TABLE IF EXISTS node_fts")
             con.execute(
-                "CREATE VIRTUAL TABLE claim_fts USING fts5("
+                "CREATE VIRTUAL TABLE IF NOT EXISTS claim_fts USING fts5("
                 "id UNINDEXED, text, entity_name, tokenize='porter unicode61')"
             )
             con.execute(
-                "CREATE VIRTUAL TABLE node_fts USING fts5(id UNINDEXED, heading, content, tokenize='porter unicode61')"
+                "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5("
+                "id UNINDEXED, heading, content, tokenize='porter unicode61')"
             )
+            con.execute("DELETE FROM claim_fts")
+            con.execute("DELETE FROM node_fts")
             con.execute(
                 """INSERT INTO claim_fts(id, text, entity_name)
                    SELECT cr.id, cr.text, e.canonical_name FROM claim_revisions cr
@@ -806,7 +827,8 @@ class WikiService:
             )
             nodes = con.execute(
                 """SELECT n.*, r.* FROM document_nodes n JOIN source_revisions r
-                   ON r.id=n.source_revision_id ORDER BY n.id"""
+                   ON r.id=n.source_revision_id JOIN sources s ON s.current_revision_id=r.id
+                   ORDER BY n.id"""
             ).fetchall()
             for node in nodes:
                 try:
@@ -817,11 +839,69 @@ class WikiService:
                     "INSERT INTO node_fts(id, heading, content) VALUES(?, ?, ?)",
                     (node["id"], node["heading"], content),
                 )
+            WikiService._set_index_metadata(con, "sqlite-fts5")
             return "sqlite-fts5"
         except sqlite3.OperationalError:
-            con.execute("DROP TABLE IF EXISTS claim_fts")
-            con.execute("DROP TABLE IF EXISTS node_fts")
+            WikiService._set_index_metadata(con, "python-lexical")
             return "python-lexical"
+
+    @staticmethod
+    def _set_index_metadata(con: sqlite3.Connection, backend: str) -> None:
+        version = Store.state_version(con)
+        con.execute("UPDATE meta SET value=? WHERE key='search_index_backend'", (backend,))
+        con.execute("UPDATE meta SET value=? WHERE key='search_index_state_version'", (str(version),))
+
+    @staticmethod
+    def _mark_index_current(con: sqlite3.Connection) -> None:
+        backend = con.execute("SELECT value FROM meta WHERE key='search_index_backend'").fetchone()[0]
+        if backend in {"sqlite-fts5", "python-lexical"}:
+            WikiService._set_index_metadata(con, backend)
+
+    @staticmethod
+    def _sync_claim_index(con: sqlite3.Connection, claim_revision_ids: list[str]) -> None:
+        if not claim_revision_ids or WikiService._ensure_index_tables(con) != "sqlite-fts5":
+            return
+        for revision_id in claim_revision_ids:
+            con.execute("DELETE FROM claim_fts WHERE id=?", (revision_id,))
+            con.execute(
+                """INSERT INTO claim_fts(id, text, entity_name)
+                   SELECT cr.id, cr.text, e.canonical_name FROM claim_revisions cr
+                   JOIN claims c ON c.id=cr.claim_id JOIN entities e ON e.id=c.entity_id
+                   WHERE cr.id=? AND cr.is_current=1""",
+                (revision_id,),
+            )
+
+    @staticmethod
+    def _sync_source_node_index(con: sqlite3.Connection, source_id: str) -> None:
+        if WikiService._ensure_index_tables(con) != "sqlite-fts5":
+            return
+        node_ids = con.execute(
+            """SELECT n.id FROM document_nodes n JOIN source_revisions r
+               ON r.id=n.source_revision_id WHERE r.source_id=?""",
+            (source_id,),
+        ).fetchall()
+        for row in node_ids:
+            con.execute("DELETE FROM node_fts WHERE id=?", (row["id"],))
+        nodes = con.execute(
+            """SELECT n.*, r.* FROM document_nodes n JOIN source_revisions r
+               ON r.id=n.source_revision_id JOIN sources s ON s.current_revision_id=r.id
+               WHERE s.id=? ORDER BY n.id""",
+            (source_id,),
+        ).fetchall()
+        for node in nodes:
+            try:
+                content = WikiService._resolve_locator(node, json.loads(node["locator_json"]))
+            except LLMWikiError:
+                continue
+            con.execute(
+                "INSERT INTO node_fts(id, heading, content) VALUES(?, ?, ?)",
+                (node["id"], node["heading"], content),
+            )
+
+    @staticmethod
+    def _ensure_index_tables(con: sqlite3.Connection) -> str:
+        backend = con.execute("SELECT value FROM meta WHERE key='search_index_backend'").fetchone()[0]
+        return backend
 
     def _search_fts(
         self,

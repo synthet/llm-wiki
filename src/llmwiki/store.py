@@ -85,6 +85,8 @@ MIGRATION_1 = [
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
         UNIQUE(kind, idempotency_key))""",
     "INSERT INTO meta(key, value) VALUES('canonical_state_version', '0')",
+    "INSERT INTO meta(key, value) VALUES('search_index_state_version', '0')",
+    "INSERT INTO meta(key, value) VALUES('search_index_backend', 'pending')",
 ]
 
 EXPORT_TABLES = (
@@ -115,7 +117,6 @@ class Store:
         con = sqlite3.connect(self.db_path, timeout=30)
         try:
             con.execute("PRAGMA foreign_keys=ON")
-            con.execute("PRAGMA journal_mode=WAL")
             has_migrations = con.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
             ).fetchone()
@@ -131,6 +132,27 @@ class Store:
                     found=current,
                     supported=SCHEMA_VERSION,
                 )
+            if current >= 1:
+                metadata = {
+                    row[0]
+                    for row in con.execute(
+                        "SELECT key FROM meta WHERE key IN ('search_index_state_version', 'search_index_backend')"
+                    )
+                }
+                index_tables = {
+                    row[0]
+                    for row in con.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('claim_fts', 'node_fts')"
+                    )
+                }
+                backend = con.execute(
+                    "SELECT value FROM meta WHERE key='search_index_backend'"
+                ).fetchone()
+                if metadata == {"search_index_state_version", "search_index_backend"} and (
+                    index_tables == {"claim_fts", "node_fts"} or (backend and backend[0] == "python-lexical")
+                ):
+                    return
+            con.execute("PRAGMA journal_mode=WAL")
             if current < 1:
                 con.execute("BEGIN IMMEDIATE")
                 try:
@@ -144,6 +166,22 @@ class Store:
                 except Exception:
                     con.rollback()
                     raise
+            con.execute("INSERT OR IGNORE INTO meta(key, value) VALUES('search_index_state_version', '-1')")
+            con.execute("INSERT OR IGNORE INTO meta(key, value) VALUES('search_index_backend', 'pending')")
+            try:
+                con.execute(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS claim_fts USING fts5("
+                    "id UNINDEXED, text, entity_name, tokenize='porter unicode61')"
+                )
+                con.execute(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5("
+                    "id UNINDEXED, heading, content, tokenize='porter unicode61')"
+                )
+                backend = "sqlite-fts5"
+            except sqlite3.OperationalError:
+                backend = "python-lexical"
+            con.execute("UPDATE meta SET value=? WHERE key='search_index_backend'", (backend,))
+            con.commit()
         finally:
             con.close()
 
