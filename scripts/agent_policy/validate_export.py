@@ -19,7 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.ci.secret_detection import scan_file as scan_secret_file
+from scripts.ci.secret_detection import scan_file as scan_secret_file  # noqa: E402
 
 DEFAULT_POLICY = REPO_ROOT / "agent-policy.yaml"
 CREDENTIAL_NAME_PARTS = (
@@ -134,7 +134,13 @@ def _looks_like_credentials(rel_path: str) -> bool:
     return any(part in lowered for part in CREDENTIAL_NAME_PARTS)
 
 
-def validate(paths: list[str], *, policy_path: Path = DEFAULT_POLICY, external_export: bool = False, approval_marker: str | None = None) -> list[str]:
+def validate(
+    paths: list[str],
+    *,
+    policy_path: Path = DEFAULT_POLICY,
+    external_export: bool = False,
+    approval_marker: str | None = None,
+) -> list[str]:
     policy = _load_policy(policy_path)
     denied = list(policy.get("denied_globs", []))
     allowed = list(policy.get("allowed_globs", ["**/*"]))
@@ -184,11 +190,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", help="workspace-relative file paths to validate")
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
-    parser.add_argument("--external-export", action="store_true", help="require export approval marker when policy requires it")
+    parser.add_argument(
+        "--external-export",
+        action="store_true",
+        help="require export approval marker when policy requires it",
+    )
     parser.add_argument("--approval-marker", help="explicit approval marker for external export")
     args = parser.parse_args(argv)
     try:
-        accepted = validate(args.paths, policy_path=args.policy, external_export=args.external_export, approval_marker=args.approval_marker)
+        accepted = validate(
+            args.paths,
+            policy_path=args.policy,
+            external_export=args.external_export,
+            approval_marker=args.approval_marker,
+        )
     except ValidationError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

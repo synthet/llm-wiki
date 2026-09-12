@@ -70,7 +70,8 @@ TABLE: dict[str, LintRecommendation] = {
         ],
         "cargo clippy --fix or cargo fmt (write) on a broad tree without approval",
         ["cargo fmt", "cargo clippy --fix"],
-        "Prefer the repo's AGENTS.md lint command when it is stricter. Scope clippy to the touched crate when practical.",
+        "Prefer the repo's AGENTS.md lint command when it is stricter. "
+        "Scope clippy to the touched crate when practical.",
     ),
 }
 

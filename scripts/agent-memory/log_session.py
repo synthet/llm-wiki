@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -14,7 +14,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from scripts.agent_memory import yaml_compat as yaml  # noqa: E402
-
 from scripts.agent_memory.limits import prune_old_sessions, session_timestamp_slug  # noqa: E402
 from scripts.agent_memory.paths import ensure_dirs, find_repo_root, load_config  # noqa: E402
 from scripts.agent_memory.schema import normalize_session, parse_candidate_flag, validate_session  # noqa: E402
@@ -23,7 +22,7 @@ from scripts.agent_memory.secrets import assert_no_secrets  # noqa: E402
 
 def _build_from_args(args: argparse.Namespace) -> dict:
     data: dict = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "task_summary": args.summary or "",
         "final_outcome": args.outcome or "",
         "files_touched": list(args.file or []),
@@ -44,7 +43,7 @@ def _interactive_session() -> dict:
     summary = input("Task summary: ").strip()
     outcome = input("Final outcome: ").strip()
     data = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "task_summary": summary,
         "final_outcome": outcome,
         "files_touched": [],
@@ -93,7 +92,7 @@ def main() -> int:
 
     data = normalize_session(data)
     if not data.get("timestamp"):
-        data["timestamp"] = datetime.now(timezone.utc).isoformat()
+        data["timestamp"] = datetime.now(UTC).isoformat()
 
     errors = validate_session(data)
     if errors:

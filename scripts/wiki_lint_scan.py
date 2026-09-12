@@ -44,9 +44,7 @@ def lint_docs(docs_root: Path) -> dict:
                 continue
             if raw.startswith("../") and "modules/" in raw:
                 broken_code.append((md, raw))
-            elif "/" not in raw and raw.endswith(".md"):
-                broken_docs.append((md, raw))
-            elif rel.startswith("archive/") or "planning/" in rel:
+            elif "/" not in raw and raw.endswith(".md") or rel.startswith("archive/") or "planning/" in rel:
                 broken_docs.append((md, raw))
             else:
                 broken_docs.append((md, raw))
