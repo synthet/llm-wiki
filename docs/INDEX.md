@@ -33,6 +33,7 @@ okf_version: 0.1
 ## Project
 - [project/INDEX.md](project/INDEX.md) — project governance index
 - [project/00-backlog-workflow.md](project/00-backlog-workflow.md) — backlog/board contract
+- [private-docs.md](private-docs.md) — where operator-private docs live (`synthet/my-docs`)
 
 ## Activity
 - [log.md](log.md) — append-only wiki log

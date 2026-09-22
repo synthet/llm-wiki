@@ -34,6 +34,12 @@ from .ingest import (
 )
 from .providers import OpenAICompatibleProvider, ProviderConfig
 from .render import render_pages, slugify
+from .semantic_retrieval import (
+    SemanticRetrievalClient,
+    annotate_claim_citations,
+    build_semantic_client,
+    combine_rank_scores,
+)
 from .store import EXPORT_TABLES, Store
 from .tree import persist_nodes
 
@@ -46,6 +52,7 @@ class WikiService:
         self.store = Store(self.config.db_path)
         self.provider = provider or ProviderConfig()
         self.provider.validate()
+        self._semantic_client: SemanticRetrievalClient | None = None
 
     @classmethod
     def init(cls, root: Path, *, force: bool = False) -> dict[str, Any]:
@@ -66,6 +73,15 @@ class WikiService:
                 "max_pdf_pages": 500,
                 "parse_timeout_seconds": 30,
                 "http_timeout_seconds": 20,
+            },
+            "retrieval": {
+                "semantic": "off",
+                "candidate_pool_multiplier": 5,
+                "max_candidate_pool": 50,
+                "citation_support_threshold": 0.55,
+                "lexical_blend": 0.25,
+                "api_key_env": "JEV_TOKEN",
+                "timeout_seconds": 30,
             },
         }
         config_path.write_text(yaml.safe_dump(config, sort_keys=True, allow_unicode=True), encoding="utf-8")
@@ -704,6 +720,7 @@ class WikiService:
         limit: int = 10,
         statuses: list[str] | None = None,
         include_nodes: bool = False,
+        verify_citations: bool = False,
     ) -> dict[str, Any]:
         if not query.strip():
             raise error("empty_query", "Search query must not be empty.")
@@ -712,20 +729,48 @@ class WikiService:
         allowed = {"candidate", "reviewed", "disputed", "stale", "superseded", "retracted"}
         if not statuses or any(item not in allowed for item in statuses):
             raise error("invalid_status_filter", "Search contains an unknown claim status.")
+        retrieval = self.config.retrieval
+        pool_limit = min(
+            max(limit, limit * retrieval.candidate_pool_multiplier),
+            retrieval.max_candidate_pool,
+        )
+        semantic = self._semantic_client_for_retrieval()
         with self.store.reader() as con:
             backend = self._ensure_index(con)
             if backend == "sqlite-fts5":
-                results = self._search_fts(con, query, statuses, limit)
+                results = self._search_fts(con, query, statuses, pool_limit)
             else:
-                results = self._search_python(con, query, statuses, limit)
+                results = self._search_python(con, query, statuses, pool_limit)
+            if semantic.backend != "off" and results:
+                semantic_scores = semantic.rerank_claims(query, results)
+                results = combine_rank_scores(
+                    results,
+                    semantic_scores,
+                    lexical_blend=retrieval.lexical_blend,
+                )[:limit]
+            else:
+                results = results[:limit]
+            if verify_citations and results and semantic.backend != "off":
+                results = annotate_claim_citations(
+                    results,
+                    semantic,
+                    threshold=retrieval.citation_support_threshold,
+                )
             selected_nodes: list[dict[str, Any]] = []
             if include_nodes:
                 selected_nodes = self._search_nodes(con, query, limit=min(limit * 2, 50), backend=backend)
             trace_id = str(uuid.uuid4())
+            method = "lexical"
+            if semantic.backend != "off":
+                method = "lexical+semantic-rerank"
+            if include_nodes:
+                method = f"{method}-hierarchical"
             trace = {
                 "id": trace_id,
-                "method": "lexical-hierarchical" if include_nodes else "lexical",
+                "method": method,
                 "backend": backend,
+                "semantic_backend": semantic.backend,
+                "candidate_pool": pool_limit,
                 "selected_node_ids": [item["id"] for item in selected_nodes[:50]],
                 "result_ids": [item["id"] for item in results[:100]],
                 "persisted": False,
@@ -733,6 +778,7 @@ class WikiService:
         return {
             "query": query,
             "backend": backend,
+            "semantic_backend": semantic.backend,
             "results": results,
             "nodes": selected_nodes,
             "trace_id": trace_id,
@@ -747,7 +793,13 @@ class WikiService:
         limit: int = 8,
         statuses: list[str] | None = None,
     ) -> dict[str, Any]:
-        search = self.search(question, limit=limit, statuses=statuses, include_nodes=True)
+        search = self.search(
+            question,
+            limit=limit,
+            statuses=statuses,
+            include_nodes=True,
+            verify_citations=True,
+        )
         if not search["results"]:
             return {
                 "question": question,
@@ -757,16 +809,40 @@ class WikiService:
                 "reason": "No matching claims in the requested review states.",
                 "trace_id": search["trace_id"],
                 "backend": search["backend"],
+                "semantic_backend": search["semantic_backend"],
             }
+        semantic = self._semantic_client_for_retrieval()
+        claims = search["results"]
+        if semantic.backend != "off" and not all("citation_supported" in item for item in claims):
+            claims = annotate_claim_citations(
+                claims,
+                semantic,
+                threshold=self.config.retrieval.citation_support_threshold,
+            )
+        supported = [item for item in claims if item.get("citation_supported", True)]
+        if semantic.backend != "off" and not supported:
+            return {
+                "question": question,
+                "answer": None,
+                "citations": [],
+                "insufficient": True,
+                "reason": "Matching claims lacked citation support above the configured threshold.",
+                "trace_id": search["trace_id"],
+                "backend": search["backend"],
+                "semantic_backend": search["semantic_backend"],
+            }
+        answer_claims = supported if semantic.backend != "off" else claims
         statements: list[str] = []
         citations: list[dict[str, Any]] = []
-        for index, claim in enumerate(search["results"], 1):
+        for index, claim in enumerate(answer_claims, 1):
             statements.append(f"{claim['text']} [{index}]")
             citations.append(
                 {
                     "number": index,
                     "claim_revision_id": claim["id"],
                     "status": claim["status"],
+                    "citation_support": claim.get("citation_support"),
+                    "citation_supported": claim.get("citation_supported", True),
                     "evidence": claim["evidence"],
                 }
             )
@@ -777,7 +853,13 @@ class WikiService:
             "insufficient": False,
             "trace_id": search["trace_id"],
             "backend": search["backend"],
+            "semantic_backend": search["semantic_backend"],
         }
+
+    def _semantic_client_for_retrieval(self) -> SemanticRetrievalClient:
+        if self._semantic_client is None:
+            self._semantic_client = build_semantic_client(self.config.retrieval)
+        return self._semantic_client
 
     def rebuild_index(self) -> dict[str, Any]:
         with self.store.transaction() as con:

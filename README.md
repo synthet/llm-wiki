@@ -73,6 +73,23 @@ plain-text headings, PDF outlines/pages, sections, and paragraphs form a determi
 Retrieval uses SQLite FTS5 when available and identifies the deterministic Python lexical fallback
 when it is not. Evidence always resolves to exact line/character or PDF page/character bounds.
 
+Optional semantic reranking and citation-support checks use [TypeSafe Jev](https://docs.typesafe.ai/introduction)
+when enabled in `.llmwiki/config.yaml` under `retrieval`. Defaults keep semantic retrieval off so
+lexical behavior is unchanged.
+
+```yaml
+retrieval:
+  semantic: typesafe   # off | heuristic | typesafe
+  api_key_env: JEV_TOKEN
+  citation_support_threshold: 0.55
+```
+
+Put `JEV_TOKEN=<typesafe api key>` in the wiki root `.env` (git-ignored). `WikiConfig.load`
+reads that file into the process environment without overriding already-set variables.
+Install the SDK with `uv sync --extra typesafe`. Set `semantic: heuristic` for deterministic
+offline rerank/citation tests without an API key. `search` reranks a lexical candidate pool;
+`ask` returns only claims whose evidence passes the support threshold.
+
 ## Provider modes
 
 - `agent` (default): export a bounded request and validate a later result; zero model calls.

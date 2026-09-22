@@ -25,8 +25,11 @@ state changes. Do not store credentials in project MCP files.
 Claude Code uses `.mcp.json`; Cursor copies `.cursor/mcp.example.json` to its ignored
 `.cursor/mcp.json`; Codex reads `.codex/config.toml` after trust. These project entries invoke
 `scripts/run_llmwiki_mcp.py`, whose location determines the repository root, so the server does not
-depend on the integration client's working directory. Replace `${workspaceFolder}` with an absolute
-checkout path in clients that do not expand it.
+depend on the integration client's working directory. `.mcp.json` uses paths relative to the checkout
+root, which Claude Code resolves because it launches stdio servers with the working directory set to
+the project root; Claude Code does **not** expand `${workspaceFolder}`. Cursor does expand it, so
+`.cursor/mcp.example.json` keeps it. In any other client that does not expand it, substitute an
+absolute checkout path.
 
 Windows installed-command example:
 
