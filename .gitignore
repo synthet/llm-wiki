@@ -35,6 +35,10 @@ dist/
 # Opt-in Graphify local graph (operator-built; not part of scaffold)
 graphify-out/
 
+# Private operator docs (separate git repo: synthet/my-docs). Nested checkout, not a
+# submodule — keeps the private remote URL out of the public llm-wiki tree.
+my-docs/
+
 # OS / editor
 .DS_Store
 Thumbs.db

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 import yaml
 
 from .errors import error
+from .semantic_retrieval import RetrievalConfig
 
 
 @dataclass(frozen=True)
@@ -23,6 +25,7 @@ class WikiConfig:
     max_pdf_pages: int = 500
     parse_timeout_seconds: float = 30.0
     http_timeout_seconds: float = 20.0
+    retrieval: RetrievalConfig = RetrievalConfig()
 
     @property
     def db_path(self) -> Path:
@@ -35,6 +38,7 @@ class WikiConfig:
     @classmethod
     def load(cls, root: Path) -> WikiConfig:
         root = root.resolve()
+        load_dotenv(root / ".env")
         config_path = root / ".llmwiki" / "config.yaml"
         values: dict[str, Any] = {}
         if config_path.exists():
@@ -49,6 +53,20 @@ class WikiConfig:
         if not isinstance(allowed, list) or not all(isinstance(item, str) for item in allowed):
             raise error("invalid_config", "Config 'allowed_roots' must be a list of paths.")
         allowed_roots = tuple(_resolve_under(root, item) for item in allowed)
+        retrieval_values = values.get("retrieval", {})
+        if retrieval_values is not None and not isinstance(retrieval_values, dict):
+            raise error("invalid_config", "Config 'retrieval' must be a mapping.")
+        retrieval_values = retrieval_values or {}
+        retrieval = RetrievalConfig(
+            semantic=str(retrieval_values.get("semantic", "off")),
+            candidate_pool_multiplier=int(retrieval_values.get("candidate_pool_multiplier", 5)),
+            max_candidate_pool=int(retrieval_values.get("max_candidate_pool", 50)),
+            citation_support_threshold=float(retrieval_values.get("citation_support_threshold", 0.55)),
+            lexical_blend=float(retrieval_values.get("lexical_blend", 0.25)),
+            api_key_env=str(retrieval_values.get("api_key_env", "JEV_TOKEN")),
+            timeout_seconds=float(retrieval_values.get("timeout_seconds", 30.0)),
+        )
+        retrieval.validate()
         return cls(
             root=root,
             data_dir=root / ".llmwiki",
@@ -60,6 +78,7 @@ class WikiConfig:
             max_pdf_pages=int(limits.get("max_pdf_pages", 500)),
             parse_timeout_seconds=float(limits.get("parse_timeout_seconds", 30)),
             http_timeout_seconds=float(limits.get("http_timeout_seconds", 20)),
+            retrieval=retrieval,
         )
 
 
@@ -93,3 +112,29 @@ def _resolve_under(root: Path, value: str) -> Path:
     if not candidate.is_absolute():
         candidate = root / candidate
     return candidate.resolve()
+
+
+def load_dotenv(path: Path) -> int:
+    """Load KEY=VALUE pairs from a local .env without overriding existing process env.
+
+    Returns the number of newly set keys. Values are never logged or returned.
+    """
+    if not path.is_file():
+        return 0
+    loaded = 0
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ[key] = value
+        loaded += 1
+    return loaded
