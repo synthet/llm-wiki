@@ -4,14 +4,14 @@ title: Wiki Schema
 description: Documentation structure, naming, link, metadata, and maintenance conventions.
 resource: WIKI_SCHEMA.md
 tags: [docs, schema, okf, maintenance]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-09-20T00:00:00Z
 okf_version: 0.1
 ---
 
-# Wiki schema — `docs/`
+# Wiki schema — `docs/` and product wiki
 
-This repository keeps `docs/` as an LLM-maintained wiki: small pages, clear hubs, and stable links to canonical contracts.
-
+This repository keeps `docs/` as an LLM-maintained OKF wiki (indexes, contracts, activity log) and a
+separate **product** LLM Wiki under `wiki/` + `.llmwiki/` (evidence-bound claims).
 
 ## OKF alignment
 
@@ -19,34 +19,28 @@ This repository keeps `docs/` as an LLM-maintained wiki: small pages, clear hubs
 
 New living pages and materially edited living pages should include YAML frontmatter with at least `type`; recommended fields are `title`, `description`, `resource`, `tags`, `timestamp`, and `okf_version`. See [OKF_ADOPTION.md](OKF_ADOPTION.md) for the local type vocabulary and migration policy.
 
-## Page types and folders
+## Layout in this checkout
 
-A neutral starter taxonomy — add/rename folders to fit your project, but keep one clear purpose per
-folder and an `INDEX.md` hub in each:
+| Path | Purpose |
+|------|---------|
+| [`INDEX.md`](INDEX.md), [`README.md`](README.md) | Docs hubs |
+| Root `docs/*.md` | Product and governance living pages (thin entry points) |
+| [`ai-workflow/`](ai-workflow/) | Agent asset map and SDLC loop |
+| [`project/`](project/) | Backlog workflow and governance |
+| [`examples/`](examples/) | Example snippets |
+| [`log.md`](log.md) | Append-only activity log |
+| [`../wiki/`](../wiki/) | Nested private repo (`synthet/my-docs`); see [private-docs.md](private-docs.md) |
+| `../wiki/notes/` | Handwritten sources (private remote; ingest before treating as canonical) |
+| `../wiki/pages/` | Generated projections only (`llmwiki render`; local) |
 
-| Folder | Purpose |
-|--------|---------|
-| [`architecture/`](architecture/) | System overview and design docs |
-| [`guides/`](guides/) | User/operator how-tos and setup |
-| [`features/`](features/) | Feature specs (planned) and shipped-behavior catalog (implemented) |
-| [`planning/`](planning/) | Migrations, refactors, roadmaps |
-| [`technical/`](technical/) | Stable reference: API, schema, internal deep-dives |
-| [`reference/`](reference/) | Generated artifacts and external references |
-| [`reports/`](reports/) | Point-in-time audits and research |
-| [`archive/`](archive/) | Deprecated or superseded material (kept for history; excluded from lint) |
-| [`project/`](project/) | Backlog workflow and governance pointers |
-
-### Repo root hub pages (`docs/*.md`)
-
-Short entry-point guides at the **root of `docs/`** (e.g. **ARCHITECTURE**, **DEVELOPMENT**,
-**TESTING**, **TROUBLESHOOTING**). They summarize where to look and link into the subfolders. Keep
-them **thin**; deep reference stays in `technical/` and `reference/`.
+Do not invent empty taxonomy folders (for example `architecture/`, `guides/`) unless you also create
+them with an `INDEX.md` hub. Prefer root living pages or an existing folder.
 
 ## Naming
 
-- **New pages:** prefer `kebab-case.md` in `guides/`, `features/planned/`, and `architecture/`.
-- **Legacy technical reference:** keep existing `UPPER_CASE.md` names under `technical/` to avoid churn.
-- **Reports:** include a date in the filename when the note is a snapshot (`topic-YYYY-MM-DD.md`).
+- **New docs pages:** prefer `kebab-case.md`.
+- **Snapshot notes:** include a date (`topic-YYYY-MM-DD.md`), especially under `wiki/notes/`.
+- **Generated pages:** do not rename by hand; change entities via compile/review then re-render.
 
 ## Links
 
@@ -59,10 +53,22 @@ them **thin**; deep reference stays in `technical/` and `reference/`.
 After adding, renaming, or removing pages:
 
 1. Update the nearest folder `INDEX.md` and, when relevant, [`INDEX.md`](INDEX.md) and [`README.md`](README.md).
-2. Append a line to [`log.md`](log.md) under the current month heading using:  
-   `- YYYY-MM-DD: <verb> — <details and paths>`  
-   Verbs: `ingested`, `created`, `updated`, `lint-fixed`, `filed-back`, `reorganized`.
+2. If `wiki/notes/` changed, update [`../wiki/notes/README.md`](../wiki/notes/README.md).
+3. Append a line to [`log.md`](log.md) under the current month heading using:
+   `- YYYY-MM-DD: <verb> — <details and paths>`
+   Verbs: `ingested`, `created`, `updated`, `lint-fixed`, `filed-back`, `reorganized`, `maintained`.
 
 ## Slash commands
 
-Project commands under `.cursor/commands/` and `.claude/commands/` (`wiki-ingest`, `wiki-query`, `wiki-lint`) should read this file before large wiki edits.
+Project commands under `.cursor/commands/` and `.claude/commands/`:
+
+| Command | Role |
+|---------|------|
+| `/wiki-ingest` | Ingest one source into the product wiki |
+| `/wiki-maintain` | Validate, render, refresh INDEX/README/notes hub, append log |
+| `/wiki-lint` | Structural (or full) docs health check |
+| `/wiki-query` | Answer from reviewed claims |
+| `/wiki-review` | Human approve/reject/retract |
+
+Read this file before large wiki or docs edits. Prefer `/wiki-maintain` after ingest/compile or when
+the user asks to "update llm wiki".

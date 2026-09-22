@@ -24,5 +24,6 @@ Start here. This `docs/` tree is an [OKF-aligned](OKF_ADOPTION.md) knowledge bun
 - [schema.md](schema.md) — canonical records, locators, lifecycle, and versions
 - [backup-and-migration.md](backup-and-migration.md) — backup, restore, and patch-era import
 - [mcp-and-editors.md](mcp-and-editors.md) — MCP and Claude/Cursor/Codex/Gemini setup
+- [private-docs.md](private-docs.md) — private wiki tree (`wiki/` ← `synthet/my-docs`)
 - [project/00-backlog-workflow.md](project/00-backlog-workflow.md) — the backlog/board contract
 - [log.md](log.md) — wiki activity log
