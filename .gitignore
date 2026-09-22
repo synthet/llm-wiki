@@ -25,8 +25,6 @@ __pycache__/
 .venv/
 venv/
 .llmwiki/
-wiki/pages/*.md
-!wiki/pages/.gitkeep
 
 # Node
 node_modules/
@@ -34,6 +32,11 @@ dist/
 
 # Opt-in Graphify local graph (operator-built; not part of scaffold)
 graphify-out/
+
+# Private wiki tree (separate git repo: synthet/my-docs). Nested checkout at wiki/, not a
+# submodule — keeps the private remote URL out of the public llm-wiki tree. Clone with:
+#   git clone git@github.com:synthet/my-docs.git wiki
+wiki/
 
 # OS / editor
 .DS_Store
