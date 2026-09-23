@@ -85,7 +85,7 @@ is unnecessary (trivial fix), say so explicitly. The `/spec` → `/plan` → `/t
 - **Backlog first:** pick and claim work via the [backlog contract](../project/00-backlog-workflow.md) (`/task-claim`); default to Local Markdown or GitHub Issues unless project docs explicitly opt into GitHub Projects.
 - **Review:** `/critical-commit-audit` for high-severity bug hunts; `/check-subagents` +
   `/run-codex-review` / `/run-gemini-review` for external second opinions. Sanitized JSONL trace artifacts can be linked as optional validation evidence; see [`../agent-observability.md`](../agent-observability.md).
-- **Docs:** `/wiki-ingest`, `/wiki-lint`, `/wiki-query` keep `docs/` healthy (see [WIKI_SCHEMA](../WIKI_SCHEMA.md)).
+- **Docs / product wiki:** `/wiki-ingest`, `/wiki-maintain`, `/wiki-lint`, `/wiki-query`, `/wiki-review` (see [WIKI_SCHEMA](../WIKI_SCHEMA.md)).
 - **Memory:** `/log-session` → `/dream-memory` → `/promote-memory` → `/memory-context`.
 - **Asset growth:** `/mine` turns an external document, repo, or transcript into agent assets;
   `lesson-to-skill` does the same for the current conversation; `/compile-skill` lowers a stable
