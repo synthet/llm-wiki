@@ -13,6 +13,7 @@ okf_version: 0.1
 ## LLM Wiki product
 
 - [architecture.md](architecture.md) — canonical compiler and retrieval architecture
+- [technical-reference.md](technical-reference.md) — comprehensive technical specification of compiler, storage, and retrieval
 - [schema.md](schema.md) — SQLite records, lifecycle, locators, and versions
 - [security.md](security.md) — agent and product threat model
 - [backup-and-migration.md](backup-and-migration.md) — versioned backup/restore and Markdown migration
