@@ -24,6 +24,9 @@ dev = [
   "pytest-asyncio>=0.25,<2",
   "ruff>=0.11,<1",
 ]
+typesafe = [
+  "typesafe-sdk>=0.1,<1",
+]
 
 [project.scripts]
 llmwiki = "llmwiki.cli:main"

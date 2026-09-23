@@ -5,7 +5,7 @@
       "_comment": "Local read/search LLM Wiki server. Add capability flags only in a separate reviewed local config.",
       "side_effects": "read-only",
       "command": "uv",
-      "args": ["run", "--project", "${workspaceFolder}", "python", "${workspaceFolder}/scripts/run_llmwiki_mcp.py"]
+      "args": ["run", "--project", ".", "python", "scripts/run_llmwiki_mcp.py"]
     }
   },
   "_examples": {
