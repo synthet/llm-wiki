@@ -22,6 +22,13 @@ state changes. Do not store credentials in project MCP files.
 
 ## Checkout-based
 
+| Editor | Config | Agent skill / commands |
+|--------|--------|-------------------------|
+| Claude Code | `.mcp.json` + enable `llmwiki-ro-core` locally | `llm-wiki` skill; `/wiki-*` commands |
+| Cursor | `.cursor/mcp.example.json` → `.cursor/mcp.json` | Generated mirror of Claude skills/commands |
+| Codex | `.codex/config.toml` after trust | `.agents/skills/llm-wiki/` |
+| Gemini CLI | User MCP + `.gemini/commands/wiki/*.toml` | `GEMINI.md`; same `llmwiki` CLI |
+
 Claude Code uses `.mcp.json`; Cursor copies `.cursor/mcp.example.json` to its ignored
 `.cursor/mcp.json`; Codex reads `.codex/config.toml` after trust. These project entries invoke
 `scripts/run_llmwiki_mcp.py`, whose location determines the repository root, so the server does not

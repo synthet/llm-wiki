@@ -7,3 +7,11 @@ state transitions, generated pages, or a separate workflow. Follow `AGENTS.md` a
 The `.gemini/commands/wiki/*.toml` commands call the installed `llmwiki` entry point. Keep these
 manually owned adapters small. Claude assets remain canonical for generated Cursor/Codex mirrors.
 
+## MCP
+
+When the Gemini CLI supports project MCP, register the same stdio server as other editors:
+`llmwiki --root <absolute-wiki-path> mcp`, or from this checkout
+`uv run --project . python scripts/run_llmwiki_mcp.py`. Default tools are read/search; ingestion and
+review need `--allow-writes` / `--allow-review`. Cross-editor matrix:
+[`docs/mcp-and-editors.md`](docs/mcp-and-editors.md).
+

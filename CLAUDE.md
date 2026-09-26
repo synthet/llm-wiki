@@ -39,6 +39,14 @@ Full contract: [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-w
 | `src/llmwiki/render.py` | deterministic Markdown projections/conflict detection |
 | `src/llmwiki/cli.py`, `mcp_server.py` | CLI and maintained-SDK stdio MCP adapters |
 
+## MCP (all agents)
+
+Project read/search MCP **`llmwiki-ro-core`** is defined in [`.mcp.json`](.mcp.json) (Claude Code),
+[`.cursor/mcp.example.json`](.cursor/mcp.example.json) → `.cursor/mcp.json` (Cursor),
+[`.codex/config.toml`](.codex/config.toml) (Codex), with Gemini CLI wiki commands under
+[`.gemini/commands/wiki/`](.gemini/commands/wiki/). See [`docs/mcp-and-editors.md`](docs/mcp-and-editors.md)
+and the [`llm-wiki`](.claude/skills/llm-wiki/SKILL.md) skill (OKF `docs/` vs `.llmwiki/` store).
+
 ## Key Files
 
 - `pyproject.toml` — Python 3.11+ package/dependency/entry-point contract

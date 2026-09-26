@@ -17,9 +17,13 @@ generated from the canonical `.claude/` assets by `scripts/sync_assistant_trees.
    python scripts/sync_assistant_trees.py --check
    ```
 
-The checked-in config enables the official OpenAI developer-docs MCP endpoint and conservative
+The checked-in config enables the official OpenAI developer-docs MCP endpoint, the project
+**`llmwiki-ro-core`** read/search wiki server (`scripts/run_llmwiki_mcp.py`), and conservative
 subagent concurrency. It intentionally does not pin a model, approval policy, or sandbox mode;
 those remain user/workspace choices.
+
+Repository skill **`llm-wiki`** (under `.agents/skills/llm-wiki/`) covers evidence-bound workflows and
+how OKF `docs/` differs from the `.llmwiki/` store. MCP details: [`docs/mcp-and-editors.md`](../docs/mcp-and-editors.md).
 
 ## Asset mapping
 

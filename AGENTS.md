@@ -35,6 +35,23 @@ uv run python -m compileall -q src tests  # source compilation
 - **Secrets via env only**, never CLI args. Reload the MCP client after changing keys.
 - User-level `~/.cursor/mcp.json` holds cross-repo tools; project keys live in this repo.
 
+### Default: `llmwiki-ro-core` (evidence wiki read/search)
+
+The product LLM Wiki MCP server is **on by default** in committed project config (read/search only).
+Full setup matrix: [`docs/mcp-and-editors.md`](docs/mcp-and-editors.md). Agent workflow skill:
+[`llm-wiki`](.claude/skills/llm-wiki/SKILL.md) (OKF `docs/` vs `.llmwiki/` in
+[`references/mcp-and-okf.md`](.claude/skills/llm-wiki/references/mcp-and-okf.md)).
+
+| Editor | Enable |
+|--------|--------|
+| Claude Code | [`.mcp.json`](.mcp.json) — allow `llmwiki-ro-core` in local MCP settings |
+| Cursor | Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → gitignored `.cursor/mcp.json`; reload MCP |
+| Codex | Trust repo; [`.codex/config.toml`](.codex/config.toml) `[mcp_servers.llmwiki-ro-core]` |
+| Gemini CLI | [`.gemini/commands/wiki/`](.gemini/commands/wiki/) + user MCP stdio pointing at `llmwiki mcp` or the checkout launcher |
+
+Launcher: `uv run --project . python scripts/run_llmwiki_mcp.py` (repo root independent of client cwd).
+Optional installed entry: `llmwiki --root <wiki> mcp`. Write/review need extra flags or separate server names.
+
 ### Optional: fff file-search MCP
 
 [fff](https://github.com/dmtrKovalenko/fff) provides fast indexed repo search via MCP (`ffgrep`, `fffind`, `fff-multi-grep`). **Opt-in** — clones work without it.
@@ -62,6 +79,7 @@ uv run python -m compileall -q src tests  # source compilation
 <!-- Auto-generated; do not edit by hand. Regenerate when your MCP tools change. -->
 | Server (example key) | Tools (when connected) | Notes |
 |----------------------|------------------------|-------|
+| `llmwiki-ro-core` | `search`, `ask`, `list_sources`, `get_source`, `get_claim`, tree read tools, `validate`, `stats`, … | **Default** in `.mcp.json`, `.cursor/mcp.example.json`, `.codex/config.toml`; writes need `--allow-writes` / `--allow-review` |
 | `fff-mcp` / `llmwiki-fff` | `ffgrep`, `fffind`, `fff-multi-grep` | Opt-in; see `.cursor/mcp.example.json` |
 | `graphify-mcp` / `llmwiki-graphify` | `query_graph`, `get_node`, `get_neighbors`, `shortest_path`, … | Opt-in; needs `graphify-out/graph.json`; see `_examples.proj-ro-graphify` |
 <!-- END MCP TOOL INVENTORY -->

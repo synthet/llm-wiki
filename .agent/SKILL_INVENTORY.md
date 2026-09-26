@@ -24,6 +24,7 @@ commands or edit code/config as part of its procedure.
 | lesson-to-skill | Turn session corrections, mistakes, and repetitions into enriched or new agent assets | L2 | 2026-07-25 |
 | mcp-server-design | Design MCP servers with safe transport, discoverable tools, pagination, and validation | L1 | 2026-07-14 |
 | llm-wiki | Evidence-bound ingestion, search, compilation, review, freshness, validation, rendering, and post-ingest docs/index/log maintenance | L2 | 2026-09-20 |
+| consume | Batch dry-run/ingest from Downloads via `/consume` and `scripts/wiki_ingest_pipeline.py` | L2 | 2026-09-24 |
 | release-bump | Semver bump, changelog promotion, release commit prep (**compiled harness**) | L2 | 2026-07-19 |
 | security-review | Lightweight pre-merge security sanity check | L1 | 2026-07-01 |
 | skill-authoring | Create and improve first-party skills with progressive disclosure and eval guidance | L2 | 2026-07-14 |
