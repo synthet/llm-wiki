@@ -6,7 +6,8 @@ Format: `- YYYY-MM-DD: <verb> — <details and paths>` (verbs: `created`, `updat
 
 ## 2026-09
 
-- 2026-09-23: created — `docs/technical-reference.md` providing comprehensive technical specification of the LLM Wiki storage engine, compilation protocol, locator resolution, semantic retrieval, and tool interfaces.
+- 2026-09-24: ingested — `/consume` batch from `D:/Downloads` (53 files scanned, 49 ingested, 42 candidate claims compiled, 115 pages rendered); 4 encrypted PDFs skipped (`VTR_146.pdf`, `VTR_146 2.pdf`, two untitled PDFs); validated store clean; Downloads not cleaned up.
+- 2026-09-24: maintained — `/consume --cleanup` on `D:/Downloads`: SHA-256 verified and removed 49 ingested files from disk; 4 encrypted PDFs left in Downloads.
 - 2026-09-21: reorganized — private knowledge remote [synthet/my-docs](https://github.com/synthet/my-docs) is now checked out as `wiki/` (no nested `my-docs/` folder); parent gitignores `wiki/`; public `docs/private-docs.md` updated with clone instructions.
 - 2026-09-20: maintained — docs INDEX/README already pointed at `private-docs.md`; fixed `WIKI_SCHEMA.md` folder taxonomy to match this checkout (cleared OKF broken-folder warnings); indexed `wiki/notes/README.md`; added `/wiki-maintain` and enriched `llm-wiki` skill with post-ingest evidence/locator and candidate-retract guardrails.
 - 2026-09-20: ingested — photo burst eye-sharpness culling notes (`wiki/notes/photo-burst-eye-sharpness-culling-2026-09-20.md`); compiled 32 candidate claims into entities `Vexlum image scoring database`, `Vexlum image quality models`, `Nikon NEF embedded preview extraction`, `Photo burst eye-sharpness culling`, and `OpenCV sharpness measurement pitfalls`; validated and rendered with `--include-unreviewed`. Three claims still carry loosely-bounded evidence quotes and need retract-and-recompile by a reviewer.

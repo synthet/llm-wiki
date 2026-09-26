@@ -16,7 +16,7 @@ Existing terminals and agent shells may still see the old PATH until restart.
 | Kind | Examples | Requirement |
 |------|----------|-------------|
 | **Shell CLI** | `fd`, `rg`, `bat`, `jq`, `yq`, `just`, `ruff`, `sg` | On PATH in agent shell |
-| **Project MCP** | optional `fff-mcp` | [`.cursor/mcp.json`](../../../../.cursor/mcp.example.json) copied from template |
+| **Project MCP** | **`llmwiki-ro-core`** (default), optional `fff-mcp` | [`.cursor/mcp.json`](../../../../.cursor/mcp.example.json) copied from template; Claude `.mcp.json`, Codex `.codex/config.toml` |
 | **User MCP** | `github`, `subagent-orchestrator` | `~/.cursor/mcp.json` — **not** fff |
 | **IDE built-in** | Grep, SemanticSearch, Glob | Always available in Cursor; no install |
 | **Project-local** | `eslint`, `pytest` in subpackages | `npm install` / `uv sync` in that package |
@@ -66,6 +66,13 @@ Winget installs on Windows are **not** visible inside WSL. If the agent runs in 
 
 - Use WSL install blocks from [install-blocks.md](install-blocks.md)
 - Keep heavy repos under `~/src` when possible — see [windows-wsl-split.md](windows-wsl-split.md)
+
+## LLM Wiki MCP (default, project-level)
+
+**`llmwiki-ro-core`** is defined in [`.cursor/mcp.example.json`](../../../../.cursor/mcp.example.json)
+(copy to gitignored `.cursor/mcp.json`), [`.mcp.json`](../../../../.mcp.json) (Claude Code), and
+[`.codex/config.toml`](../../../../.codex/config.toml) (Codex). Reload MCP after enabling. Use the
+`llm-wiki` skill for OKF `docs/` vs `.llmwiki/` workflows.
 
 ## fff MCP (opt-in, project-level)
 

@@ -45,11 +45,16 @@ CLAIM_PROOF_CATALOG: dict[str, dict[str, str]] = {
 }
 
 SECRET_PATH_PATTERNS = [
-    re.compile(r"(?i)(^|/|\\)\.env(\.|$)"),
-    re.compile(r"(?i)secrets\.json$"),
+    re.compile(r"(?i)(^|/|\\)\.env$"),
+    re.compile(r"(?i)(^|/|\\)\.env\.(?!example$).+"),
+    re.compile(r"(?i)secrets(\..*)?\.json$"),
+    re.compile(r"(?i)credentials\.json$"),
+    re.compile(r"(?i)(^|/|\\)\.cursor/mcp\.json$"),
+    re.compile(r"(?i)(^|/|\\)\.claude/settings\.local\.json$"),
     re.compile(r"(?i)\.pem$"),
     re.compile(r"(?i)id_rsa"),
     re.compile(r"(?i)\.p12$"),
+    re.compile(r"(?i)\.pfx$"),
 ]
 
 # Named gate subsets for task-env-package-tools harness profiles.

@@ -58,6 +58,10 @@ Profiles: `framework`, `agent-assets` (sync + frontmatter + cli_skills), `tests`
 
 Bootstrapped projects: use `pip install -e .` / `python -m pytest` / `ruff check .` from AGENTS.md.
 
+**OKF `docs/` bundle:** prefer `okf_lint` / `wiki_lint` gates above for living documentation metadata.
+**Evidence wiki (`.llmwiki/`):** use the [`llm-wiki`](../llm-wiki/SKILL.md) skill and `llmwiki` CLI or
+`llmwiki-ro-core` MCP — do not conflate the two stores.
+
 ## LLM judgment slots
 
 - Choose `--profile` / `--gates` for the change type.

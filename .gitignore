@@ -1,8 +1,13 @@
 # Secrets — never commit
 secrets.json
+secrets.*.json
+credentials.json
 .env
 .env.*
 !.env.example
+*.pem
+*.p12
+*.pfx
 
 # Local machine-specific agent config
 .claude/settings.local.json

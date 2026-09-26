@@ -22,6 +22,15 @@ python scripts/sync_assistant_trees.py     # regenerate Cursor and Codex mirrors
 python scripts/validate_cli_skills.py      # CLI skill structure (when CLI skills changed)
 ```
 
+## LLM Wiki MCP (default)
+
+- **Server key:** `llmwiki-ro-core` (read/search). Committed in `.mcp.json`, `.cursor/mcp.example.json`, `.codex/config.toml`.
+- **Cursor:** copy `.cursor/mcp.example.json` → `.cursor/mcp.json` and reload MCP.
+- **Claude Code:** enable `llmwiki-ro-core` from `.mcp.json` in local settings.
+- **Codex:** trust the repo so `.codex/config.toml` loads.
+- **Skill:** `llm-wiki` — OKF `docs/` vs `.llmwiki/`; see [`docs/mcp-and-editors.md`](../docs/mcp-and-editors.md).
+- **Smoke:** `uv run python -m pytest -q tests/test_mcp_sdk.py`
+
 ## Optional MCP (fff, Graphify)
 
 - **fff:** Fast indexed repo search — install [fff-mcp](https://github.com/dmtrKovalenko/fff), copy `_examples.proj-ro-fff` from `.cursor/mcp.example.json` into gitignored `.cursor/mcp.json`, reload MCP.

@@ -12,5 +12,5 @@ url = "https://developers.openai.com/mcp"
 
 [mcp_servers.llmwiki-ro-core]
 command = "uv"
-args = ["run", "python", "scripts/run_llmwiki_mcp.py"]
+args = ["run", "--project", ".", "python", "scripts/run_llmwiki_mcp.py"]
 cwd = "."

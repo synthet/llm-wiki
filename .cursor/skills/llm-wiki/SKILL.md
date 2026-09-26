@@ -4,7 +4,7 @@ description: Use when searching, ingesting, compiling, reviewing, refreshing, va
 capability: "evidence-bound LLM Wiki workflow"
 side_effect_level: local_write
 approval_required: false
-requires_tools: "llmwiki CLI or llmwiki MCP server"
+requires_tools: "llmwiki CLI; optional llmwiki-ro-core MCP (see references/mcp-and-okf.md)"
 output_schema: "Cited answer or structured operation result"
 risk_class: medium
 ---
@@ -14,6 +14,13 @@ risk_class: medium
 Use canonical CLI/MCP operations instead of editing `.llmwiki/wiki.db`, object files, or generated
 `wiki/pages/*.md` directly. Handwritten context belongs in `wiki/notes/` and is not canonical until
 explicitly ingested.
+
+**OKF vs product store:** `docs/` is the living OKF knowledge bundle (markdown + `okf_lint`). The
+evidence-bound wiki lives under `.llmwiki/` and is reached through this skill's CLI/MCP paths only.
+Editor MCP wiring (Claude, Cursor, Codex, Gemini): [references/mcp-and-okf.md](references/mcp-and-okf.md).
+
+Batch markdown from Downloads folders: [`consume`](../consume/SKILL.md) or `/consume`, and
+`uv run python scripts/consume_download_markdown.py` (dry-run by default; `--run` to ingest).
 
 Prefer `uv run llmwiki ... --json`. On Windows, console codepages can mangle non-ASCII CLI text;
 trust JSON/`--json` and file reads over rendered console ellipses.

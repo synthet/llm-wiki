@@ -22,7 +22,8 @@ okf_version: 0.1
 | Codex skills | `.agents/skills/*/SKILL.md` | **Generated** from `.claude/skills/` — do not edit by hand |
 | Codex subagents | `.codex/agents/*.toml` | **Generated** from `.claude/agents/` — do not edit by hand |
 | Codex config | `.codex/config.toml` | Project-scoped defaults and portable MCP endpoints |
-| MCP template | `.cursor/mcp.example.json`, `.mcp.json` | Copy to gitignored `.cursor/mcp.json` to attach servers |
+| MCP template | `.cursor/mcp.example.json`, `.mcp.json`, `.codex/config.toml` | Default **`llmwiki-ro-core`** read/search wiki; copy Cursor template to gitignored `.cursor/mcp.json` |
+| Gemini wiki CLI | `.gemini/commands/wiki/*.toml`, `GEMINI.md` | Thin `llmwiki` adapters (manual, not synced) |
 | Agent governance | `.agent/` | Safety, inventory, subagent role matrix, workflow playbooks |
 | Project memory | `.agent-memory/` | log → dream → promote (see `CURSOR_USAGE.md`) |
 | Workflow playbooks | `.agent/workflows/*.md` | spec / plan / tasks / implement / pr-ready / test-and-fix / … |
@@ -48,12 +49,17 @@ Thirteen skills under `.claude/skills/` cover agent-safe CLI usage (see [`.agent
 | `mcp-code-intelligence` | MCP tiers (incl. optional fff) |
 | `install-checklist` | Human workstation provisioning |
 | `windows-agent-tooling` / `wsl2-agent-tooling` | Platform split |
+| `llm-wiki` | Evidence-bound `.llmwiki/` via CLI/MCP; OKF `docs/` boundaries — see `references/mcp-and-okf.md` |
 
 Validate after changes: `python scripts/validate_cli_skills.py`.
 
 **Install tiers:** Human provisioning order (Tier 0 → Block A → Block B → deferred) and operator scopes live in `cli-tools-overview/references/install-tiers.md`. After installs, restart Cursor and smoke-test PATH per `agent-environment.md`.
 
 **Downstream pattern:** Cursor-first forks (e.g. image-scoring-gallery) may consolidate into `agent-cli-hub` + topic skills; cherry-pick individual flat skills from this framework as needed.
+
+## Default MCP: LLM Wiki (`llmwiki-ro-core`)
+
+Read/search tools for the product wiki ship in [`.mcp.json`](../../.mcp.json), [`.cursor/mcp.example.json`](../../.cursor/mcp.example.json), and [`.codex/config.toml`](../../.codex/config.toml). Setup: [`mcp-and-editors.md`](../mcp-and-editors.md). Workflow: **`llm-wiki`** skill and `/wiki-*` commands.
 
 ## Optional MCP (fff)
 
@@ -85,7 +91,7 @@ is unnecessary (trivial fix), say so explicitly. The `/spec` → `/plan` → `/t
 - **Backlog first:** pick and claim work via the [backlog contract](../project/00-backlog-workflow.md) (`/task-claim`); default to Local Markdown or GitHub Issues unless project docs explicitly opt into GitHub Projects.
 - **Review:** `/critical-commit-audit` for high-severity bug hunts; `/check-subagents` +
   `/run-codex-review` / `/run-gemini-review` for external second opinions. Sanitized JSONL trace artifacts can be linked as optional validation evidence; see [`../agent-observability.md`](../agent-observability.md).
-- **Docs / product wiki:** `/wiki-ingest`, `/wiki-maintain`, `/wiki-lint`, `/wiki-query`, `/wiki-review` (see [WIKI_SCHEMA](../WIKI_SCHEMA.md)).
+- **Docs / product wiki:** `/wiki-ingest`, `/consume` (Downloads batch), `/wiki-maintain`, `/wiki-lint`, `/wiki-query`, `/wiki-review` (see [WIKI_SCHEMA](../WIKI_SCHEMA.md)).
 - **Memory:** `/log-session` → `/dream-memory` → `/promote-memory` → `/memory-context`.
 - **Asset growth:** `/mine` turns an external document, repo, or transcript into agent assets;
   `lesson-to-skill` does the same for the current conversation; `/compile-skill` lowers a stable
