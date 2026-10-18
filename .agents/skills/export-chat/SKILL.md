@@ -1,7 +1,7 @@
 ---
 name: export-chat
-description: Use when the user types /export or /export-chat, or asks to export, save, dump, copy, or share the current chat, conversation, or agent transcript as a file or to the clipboard. Mimics Claude Code's /export for Cursor by rendering the Cursor agent transcript (user/assistant text plus full tool-call inputs) to Markdown. Also use to export an earlier Cursor chat by id.
-capability: "Export a Cursor agent chat transcript to a Markdown file or the clipboard, like Claude Code /export."
+description: Use when the user types /export or /export-chat, or asks to export, save, dump, copy, or share the current chat, conversation, or agent transcript as a file or to the clipboard. Renders Cursor and Google Antigravity agent transcripts (user/assistant text plus full tool-call inputs) to Markdown. Also use to export an earlier Cursor chat by id.
+capability: "Export a Cursor or Google Antigravity agent chat transcript to a Markdown file or the clipboard."
 side_effect_level: local_write
 approval_required: false
 requires_tools: "python (stdlib only); clip / pbcopy / wl-copy / xclip / xsel for --clipboard"
@@ -9,10 +9,11 @@ output_schema: "Path of the written Markdown file (or clipboard tool used) plus 
 risk_class: low
 ---
 
-# Export chat (Cursor `/export`)
+# Export chat (Cursor & Antigravity `/export`)
 
-Renders the Cursor agent transcript at
-`~/.cursor/projects/<workspace-slug>/agent-transcripts/<uuid>/<uuid>.jsonl` to Markdown. The
+Renders Cursor transcripts (`~/.cursor/projects/<workspace-slug>/agent-transcripts/<uuid>/<uuid>.jsonl`)
+or Antigravity transcripts (`~/.gemini/antigravity-cli/brain/<uuid>/.system_generated/logs/transcript.jsonl`)
+to Markdown. The
 newest transcript for the workspace is the current chat. Run the script from the workspace root.
 The script lives next to this file, so use `.cursor/skills/export-chat/scripts/export_chat.py` in
 this repo or `~/.cursor/skills/export-chat/scripts/export_chat.py` for the user-level install.
