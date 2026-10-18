@@ -1,6 +1,6 @@
 # Skill inventory — LLM Wiki
 
-**Last reviewed:** 2026-09-20. Companion to [SKILL_CHANGE_AST10_REVIEW.md](SKILL_CHANGE_AST10_REVIEW.md)
+**Last reviewed:** 2026-10-05. Companion to [SKILL_CHANGE_AST10_REVIEW.md](SKILL_CHANGE_AST10_REVIEW.md)
 and [SKILL_COMPILATION.md](SKILL_COMPILATION.md).
 Update this file (new row or **Last reviewed** date) in the same PR as any skill change.
 
@@ -13,18 +13,21 @@ commands or edit code/config as part of its procedure.
 
 | Skill | Purpose | Risk | Last reviewed |
 |-------|---------|------|---------------|
+| archive-session-transcripts | Session export conversion, sanitized Jev MCP decisions, verified local wiki ingestion and guarded export removal | L2 | 2026-10-10 |
 | agent-memory | Log sessions, dream consolidation, promote memory, load context (bootloader over `scripts/agent-memory/`) | L2 | 2026-07-19 |
-| autonomous-run-contract | Metric, budget, revert rule, and stop conditions before an unattended or fanned-out run | L1 | 2026-07-25 |
+| autonomous-run-contract | Metric, full-route budget, subgoal deduplication, shared evidence, and stop conditions before an unattended or fanned-out run | L1 | 2026-09-27 |
 | backlog-queue | Provider-oriented backlog queue; local markdown, GitHub Issues, optional GitHub Projects | L2 | 2026-07-01 |
 | commit-conventions | Conventional Commits and PR title wording | L1 | 2026-07-01 |
 | commit-and-push | Stage, commit, and push with git safety rules; pairs with release-bump (**compiled harness**) | L2 | 2026-07-19 |
 | critical-commit-audit | Deep post-commit hunt for high-severity bugs | L2 | 2026-07-01 |
 | eval | Capture task quality signals to agent memory (**compiled harness**) | L2 | 2026-07-21 |
 | karpathy-guidelines | Deliberate coding checklist: assumptions, simplicity, surgical diffs, verifiable goals | L2 | 2026-07-14 |
+| jev-mcp | Typed semantic judgments and coding-agent context/routing design; paid calls export data and require scoped authorization | L2 | 2026-09-27 |
 | lesson-to-skill | Turn session corrections, mistakes, and repetitions into enriched or new agent assets | L2 | 2026-07-25 |
 | mcp-server-design | Design MCP servers with safe transport, discoverable tools, pagination, and validation | L1 | 2026-07-14 |
 | llm-wiki | Evidence-bound ingestion, search, compilation, review, freshness, validation, rendering, and post-ingest docs/index/log maintenance | L2 | 2026-09-20 |
 | consume | Batch dry-run/ingest from Downloads via `/consume` and `scripts/wiki_ingest_pipeline.py` | L2 | 2026-09-24 |
+| wiki-db-backup | On-demand `.llmwiki/wiki.db` snapshot to Drive or `LLMWIKI_DB_BACKUP_ROOT` (**compiled harness**) | L2 | 2026-10-05 |
 | release-bump | Semver bump, changelog promotion, release commit prep (**compiled harness**) | L2 | 2026-07-19 |
 | security-review | Lightweight pre-merge security sanity check | L1 | 2026-07-01 |
 | skill-authoring | Create and improve first-party skills with progressive disclosure and eval guidance | L2 | 2026-07-14 |
@@ -42,7 +45,7 @@ commands or edit code/config as part of its procedure.
 |-------|---------|------|---------------|
 | search-tool-selection | Choose fd vs rg vs ast-grep vs fff MCP vs Graphify vs IDE search (**compiled harness**) | L1 | 2026-07-21 |
 | safe-command-patterns | Bounded output, inspect-before-edit, confirmation gates | L1 | 2026-07-03 |
-| search-and-navigation | rg, fd, bat, tree, navigation | L1 | 2026-07-03 |
+| search-and-navigation | Bounded search, query-specific context selection, and retrieval reuse with source revisions | L1 | 2026-09-27 |
 | git-and-diff-workflows | git, gh, bounded diffs | L1 | 2026-07-03 |
 | cli-tools-overview | Router for CLI skills + shared references (install-tiers, agent-environment) | L1 | 2026-07-04 |
 | task-env-package-tools | Task runners, sync/frontmatter/pytest gates (**compiled harness**) | L1 | 2026-07-21 |

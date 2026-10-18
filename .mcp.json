@@ -5,12 +5,23 @@
       "_comment": "Local read/search LLM Wiki server. Add capability flags only in a separate reviewed local config.",
       "side_effects": "read-only",
       "command": "uv",
-      "args": ["run", "--project", ".", "python", "scripts/run_llmwiki_mcp.py"]
+      "args": [
+        "run",
+        "--project",
+        ".",
+        "python",
+        "scripts/run_llmwiki_mcp.py"
+      ],
+      "type": "stdio"
+    },
+    "openaiDeveloperDocs": {
+      "url": "https://developers.openai.com/mcp",
+      "type": "http"
     }
   },
   "_examples": {
     "proj-ro-fff": {
-      "_comment": "Optional local stdio read-only file search \u2014 https://github.com/dmtrKovalenko/fff . Tools: ffgrep, fffind, fff-multi-grep",
+      "_comment": "Optional local stdio read-only file search — https://github.com/dmtrKovalenko/fff . Tools: ffgrep, fffind, fff-multi-grep",
       "side_effects": "read-only",
       "command": "fff-mcp",
       "args": [],
@@ -19,7 +30,7 @@
       }
     },
     "proj-ro-graphify": {
-      "_comment": "Optional local stdio read-only knowledge graph \u2014 https://github.com/Graphify-Labs/graphify . Requires: uv tool install \"graphifyy[mcp]\"; build graphify-out/graph.json first (graphify .). Tools: query_graph, get_node, get_neighbors, shortest_path, \u2026",
+      "_comment": "Optional local stdio read-only knowledge graph — https://github.com/Graphify-Labs/graphify . Requires: uv tool install \"graphifyy[mcp]\"; build graphify-out/graph.json first (graphify .). Tools: query_graph, get_node, get_neighbors, shortest_path, …",
       "side_effects": "read-only",
       "command": "graphify-mcp",
       "args": [

@@ -61,6 +61,19 @@ git diff -- path/to/file | delta
 - Do not use `fzf` in agent loops (interactive TTY).
 - Prefer IDE Grep/SemanticSearch/Glob when already bound in Cursor.
 
+## Select context for the question
+
+- Start with filenames/symbols and snippets, then expand only the evidence needed for the current
+  question. Use short findings with locators for orientation and exact excerpts/full files for edits.
+- Reuse earlier retrieval when the question and source revision still match; invalidate affected
+  findings after edits. Preserve full logs where useful, including exact errors and exit codes.
+- Keep applicable instructions and unresolved contradictions visible. A filtered result is not
+  evidence that excluded material does not exist. Reload applicable local guidance after a handoff
+  or scope change when needed.
+- For designing Jev-assisted visibility selection, see
+  [coding-agent engineering](../jev-mcp/references/coding-agent-engineering.md). Routine search
+  remains deterministic and does not require a model call.
+
 ## Commands Requiring Confirmation
 
 See [commands-requiring-confirmation.md](../cli-tools-overview/references/commands-requiring-confirmation.md).

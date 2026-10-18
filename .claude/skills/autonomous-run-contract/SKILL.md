@@ -104,6 +104,13 @@ Two failure modes to guard against:
 
 ## Fan-out extras
 
+- **Deduplicate before launch.** Register the objective, scope, source revision, owner, and status
+  of each subgoal. Reuse matching completed or in-flight work; reopen when its evidence changes.
+- **Budget the entire route.** Count helper context, output, tool results, parent merge/reprocessing,
+  decision calls, and retries. A cheaper model's token price alone does not justify delegation.
+- **Share versioned evidence.** Give authorized readers one retrieval artifact with paths/locators
+  and revisions; refresh it after edits. Assign exclusive write ownership before concurrent work.
+  Report generation still writes artifacts; external reviewers still require export authorization.
 - **Define the reducer before the fan-out.** Decide how findings will be merged, deduplicated, and
   ranked before any worker starts; otherwise you get N reports and no answer.
 - **Every handoff is an artifact contract.** Workers return structured findings with evidence, not
@@ -131,6 +138,8 @@ learnings to [`eval`](../eval/SKILL.md) → `/log-session`.
 - [`/decompose`](../../commands/decompose.md) — building the independent units this contract governs
 - [`validate-implementation`](../validate-implementation/SKILL.md) — per-AC verdicts when the metric is an AC matrix
 - [`subagent-review`](../subagent-review/SKILL.md) — approval-gated external review fan-out
+- [Jev coding-agent engineering](../jev-mcp/references/coding-agent-engineering.md) — compact
+  handoffs, context selection, and cost/policy gates; this guidance does not itself authorize fan-out
 
 Sources: Karpathy's *autoresearch* / *AgentHub* (loop, ratchet, commit-DAG lineage) and Anthropic's
 *Building Effective Agents* (chain, route, parallelize, orchestrate, evaluate).
