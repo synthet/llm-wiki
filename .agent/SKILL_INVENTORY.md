@@ -1,6 +1,6 @@
 # Skill inventory — LLM Wiki
 
-**Last reviewed:** 2026-10-05. Companion to [SKILL_CHANGE_AST10_REVIEW.md](SKILL_CHANGE_AST10_REVIEW.md)
+**Last reviewed:** 2026-10-17. Companion to [SKILL_CHANGE_AST10_REVIEW.md](SKILL_CHANGE_AST10_REVIEW.md)
 and [SKILL_COMPILATION.md](SKILL_COMPILATION.md).
 Update this file (new row or **Last reviewed** date) in the same PR as any skill change.
 
@@ -25,7 +25,7 @@ commands or edit code/config as part of its procedure.
 | jev-mcp | Typed semantic judgments and coding-agent context/routing design; paid calls export data and require scoped authorization | L2 | 2026-09-27 |
 | lesson-to-skill | Turn session corrections, mistakes, and repetitions into enriched or new agent assets | L2 | 2026-07-25 |
 | mcp-server-design | Design MCP servers with safe transport, discoverable tools, pagination, and validation | L1 | 2026-07-14 |
-| llm-wiki | Evidence-bound ingestion, search, compilation, review, freshness, validation, rendering, and post-ingest docs/index/log maintenance | L2 | 2026-09-20 |
+| llm-wiki | Evidence-bound ingestion, search, compilation, review, freshness, validation, rendering, and post-ingest docs/index/log maintenance | L2 | 2026-10-17 |
 | consume | Batch dry-run/ingest from Downloads via `/consume` and `scripts/wiki_ingest_pipeline.py` | L2 | 2026-09-24 |
 | wiki-db-backup | On-demand `.llmwiki/wiki.db` snapshot to Drive or `LLMWIKI_DB_BACKUP_ROOT` (**compiled harness**) | L2 | 2026-10-05 |
 | release-bump | Semver bump, changelog promotion, release commit prep (**compiled harness**) | L2 | 2026-07-19 |
@@ -55,7 +55,8 @@ commands or edit code/config as part of its procedure.
 | lint-format-security | ruff, eslint, clippy, trivy, shellcheck (**compiled harness**) | L2 | 2026-08-14 |
 | mcp-code-intelligence | MCP tiers; fff, Graphify, Serena, Zoekt, embeddings | L2 | 2026-07-21 |
 | graphify-knowledge-graph | Query/refresh Graphify MCP or CLI for architecture paths and communities | L2 | 2026-07-21 |
-| windows-agent-tooling | Native Windows agent workflows | L2 | 2026-07-03 |
+| windows-agent-tooling | Native Windows agent workflows and sandbox execution rules | L2 | 2026-10-17 |
+| export-chat | Render Cursor or Antigravity agent transcript to Markdown or clipboard | L1 | 2026-10-17 |
 | wsl2-agent-tooling | WSL2 build/test/MCP workflows | L2 | 2026-07-03 |
 
 ## Subagents (`.claude/agents/`)
