@@ -88,7 +88,7 @@ def _copy_cursor_target(src: Path, dst: Path, mode: str) -> None:
     if mode == "tree":
         for child in sorted(src.iterdir()):
             if child.is_dir():
-                shutil.copytree(child, dst / child.name)
+                shutil.copytree(child, dst / child.name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"))
             else:
                 shutil.copy2(child, dst / child.name)
     elif mode == "rules":
@@ -103,7 +103,7 @@ def _sync_codex() -> None:
     _reset_dir(CODEX_SKILLS)
     for child in sorted((CLAUDE / "skills").iterdir()):
         if child.is_dir():
-            shutil.copytree(child, CODEX_SKILLS / child.name)
+            shutil.copytree(child, CODEX_SKILLS / child.name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"))
         else:
             shutil.copy2(child, CODEX_SKILLS / child.name)
     _reset_dir(CODEX_AGENTS)
@@ -159,6 +159,8 @@ def _tree_paths(root: Path) -> tuple[dict[str, Path], set[str]]:
     files: dict[str, Path] = {}
     dirs: set[str] = set()
     for path in root.rglob("*"):
+        if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
+            continue
         relative = path.relative_to(root).as_posix()
         if path.is_file():
             files[relative] = path

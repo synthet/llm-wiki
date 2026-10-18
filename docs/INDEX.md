@@ -19,6 +19,11 @@ okf_version: 0.1
 - [backup-and-migration.md](backup-and-migration.md) — versioned backup/restore and Markdown migration
 - [mcp-and-editors.md](mcp-and-editors.md) — stdio MCP and editor integration setup
 
+## Ecosystem OKF bundles
+
+- [ecosystems/INDEX.md](ecosystems/INDEX.md) — multi-repo families for LLM Wiki ingest
+- [ecosystems/image-scoring/README.md](ecosystems/image-scoring/README.md) — **Image Scoring / Vexlum** comprehensive hub
+
 ## Governance & conventions
 - [README.md](README.md) — documentation hub
 - [CANONICAL_SOURCES.md](CANONICAL_SOURCES.md) — authority map
