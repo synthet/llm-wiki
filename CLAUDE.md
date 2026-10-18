@@ -39,13 +39,22 @@ Full contract: [`docs/project/00-backlog-workflow.md`](docs/project/00-backlog-w
 | `src/llmwiki/render.py` | deterministic Markdown projections/conflict detection |
 | `src/llmwiki/cli.py`, `mcp_server.py` | CLI and maintained-SDK stdio MCP adapters |
 
-## MCP (all agents)
+## MCP & Knowledge Base (all agents)
 
-Project read/search MCP **`llmwiki-ro-core`** is defined in [`.mcp.json`](.mcp.json) (Claude Code),
-[`.cursor/mcp.example.json`](.cursor/mcp.example.json) → `.cursor/mcp.json` (Cursor),
-[`.codex/config.toml`](.codex/config.toml) (Codex), with Gemini CLI wiki commands under
-[`.gemini/commands/wiki/`](.gemini/commands/wiki/). See [`docs/mcp-and-editors.md`](docs/mcp-and-editors.md)
-and the [`llm-wiki`](.claude/skills/llm-wiki/SKILL.md) skill (OKF `docs/` vs `.llmwiki/` store).
+Project read/search MCP **`llmwiki-ro-core`** is configured globally and locally for all harnesses:
+Claude Code (`.mcp.json` / `~/.claude.json`), Cursor (`.cursor/mcp.json` / `~/.cursor/mcp.json`),
+Codex (`.codex/config.toml` / `~/.codex/config.toml`), and Antigravity / Gemini (`~/.gemini/config/mcp_config.json`).
+
+Agents should leverage the following MCP tools for evidence-bound knowledge:
+- `search`, `ask`: Query current reviewed claims and synthesize cited answers
+- `list_sources`, `get_source`, `get_claim`, `get_evidence`: Retrieve exact locators and source quotes
+- `search_tree`, `list_tree_nodes`, `read_tree_node`: Bounded hierarchical tree exploration
+- `validate`, `stats`: Store integrity and indexing statistics
+
+**Privacy Invariant**:
+- Living OKF docs live in `docs/`.
+- SQLite database and content-addressed objects live in `.llmwiki/`.
+- Private session transcripts, reverse-engineering notes, camera/hardware control, and binary analyses live in `wiki/notes/_local/` and must NEVER be staged or committed to remote git repos.
 
 ## Key Files
 

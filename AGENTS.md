@@ -37,17 +37,24 @@ uv run python -m compileall -q src tests  # source compilation
 
 ### Default: `llmwiki-ro-core` (evidence wiki read/search)
 
-The product LLM Wiki MCP server is **on by default** in committed project config (read/search only).
+The product LLM Wiki MCP server is **on by default** across all agent harnesses (read/search only).
 Full setup matrix: [`docs/mcp-and-editors.md`](docs/mcp-and-editors.md). Agent workflow skill:
 [`llm-wiki`](.claude/skills/llm-wiki/SKILL.md) (OKF `docs/` vs `.llmwiki/` in
 [`references/mcp-and-okf.md`](.claude/skills/llm-wiki/references/mcp-and-okf.md)).
 
-| Editor | Enable |
-|--------|--------|
-| Claude Code | [`.mcp.json`](.mcp.json) — allow `llmwiki-ro-core` in local MCP settings |
-| Cursor | Copy [`.cursor/mcp.example.json`](.cursor/mcp.example.json) → gitignored `.cursor/mcp.json`; reload MCP |
-| Codex | Trust repo; [`.codex/config.toml`](.codex/config.toml) `[mcp_servers.llmwiki-ro-core]` |
-| Gemini CLI | [`.gemini/commands/wiki/`](.gemini/commands/wiki/) + user MCP stdio pointing at `llmwiki mcp` or the checkout launcher |
+Available MCP tools (read-only by default):
+- **Search & Q&A:** `search`, `ask`, `stats`, `backlinks`
+- **Evidence & Claims:** `list_sources`, `get_source`, `get_claim`, `get_evidence`
+- **Hierarchical Reading:** `search_tree`, `list_tree_nodes`, `read_tree_node`, `list_pages`, `get_page`
+- **Integrity:** `validate`
+Elevated tools require explicit flags: write (`ingest_path`, `ingest_url`, `apply_compilation_result`) via `--allow-writes`, and human review (`approve_claim`, `reject_claim`, `retract_claim`) via `--allow-review`.
+
+| Harness | Configuration location |
+|---|---|
+| Claude Code & Desktop | `~/.claude.json`, `~/.claude/settings.json`, and repo `.mcp.json` |
+| Cursor IDE | `~/.cursor/mcp.json` and gitignored `.cursor/mcp.json` |
+| OpenAI Codex CLI | `~/.codex/config.toml` (`[mcp_servers.llmwiki-ro-core]`) |
+| Google Antigravity / Gemini | `~/.gemini/config/mcp_config.json`, `~/.gemini/settings.json`, and `~/.gemini/antigravity-cli/mcp/` |
 
 Launcher: `uv run --project . python scripts/run_llmwiki_mcp.py` (repo root independent of client cwd).
 Optional installed entry: `llmwiki --root <wiki> mcp`. Write/review need extra flags or separate server names.
@@ -132,6 +139,7 @@ knows exactly which suite "E2E" means:
   ingestion. Never auto-switch or silently fall back to a remote provider.
 - No PageIndex package/code/service/auth/upload/telemetry. Hierarchical retrieval is local and
   independently implemented.
+- Reverse-engineering, binary analysis, memory maps, hardware/camera protocols, and Electron unpacking must remain under local-only paths (`wiki/notes/_local/`) and must NEVER be linked in public indexes or pushed to remote repositories.
 - Do not directly edit generated assistant mirrors or generated wiki pages. Change `.claude/` or
   canonical records respectively, then run the relevant sync/render command.
 

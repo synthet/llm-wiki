@@ -19,11 +19,19 @@ explicitly ingested.
 evidence-bound wiki lives under `.llmwiki/` and is reached through this skill's CLI/MCP paths only.
 Editor MCP wiring (Claude, Cursor, Codex, Gemini): [references/mcp-and-okf.md](references/mcp-and-okf.md).
 
-Batch markdown from Downloads folders: [`consume`](../consume/SKILL.md) or `/consume`, and
-`uv run python scripts/consume_download_markdown.py` (dry-run by default; `--run` to ingest).
+**Privacy and Confidentiality Boundary:**
+- Knowledge intended for public or tracked documentation goes to `docs/` or `wiki/docs/` / `wiki/notes/`.
+- Confidential, proprietary, or reverse-engineering notes (such as BurstPick camera protocols, game binary analysis, savegame formats, memory maps, and Electron unpacking) must strictly reside under `wiki/notes/_local/` (git-ignored) and must never be linked in tracked public indexes or pushed to remote repositories.
 
-Prefer `uv run llmwiki ... --json`. On Windows, console codepages can mangle non-ASCII CLI text;
-trust JSON/`--json` and file reads over rendered console ellipses.
+**MCP Tool Surface (`llmwiki-ro-core`):**
+Connected agents should prioritize MCP tools:
+- Query: `search`, `ask`, `stats`, `backlinks`
+- Sources & Evidence: `list_sources`, `get_source`, `get_claim`, `get_evidence`
+- Hierarchy & Tree: `search_tree`, `list_tree_nodes`, `read_tree_node`, `list_pages`, `get_page`
+- Integrity: `validate`
+Writes (`ingest_path`, `ingest_url`, `apply_compilation_result`) and reviews (`approve_claim`, `reject_claim`, `retract_claim`) require elevated flags (`--allow-writes` / `--allow-review`) or CLI commands.
+
+Batch downloads ingest: [`consume`](../consume/SKILL.md) or `uv run python scripts/consume_downloads.py --run --cleanup`.
 
 ## Find and answer
 

@@ -12,5 +12,6 @@ alwaysApply: true
   high-risk: prefer read-only diagnostics unless the user explicitly asks for the write.
 - External CLI reviews are review-only (`allowWrites: false`); never send secrets or full config.
 - Validate external inputs; side-effecting actions need confirmation/approval.
+- Reverse engineering & hardware protocols: binary analysis, memory maps, decompilation, unpublished camera/hardware control protocols, and Electron unpacking must strictly reside under local-only paths (`_local/`, e.g. `wiki/notes/_local/`) and must NEVER be committed or pushed to remote git repositories.
 
 Full detail: [`.agent/SAFETY.md`](../../.agent/SAFETY.md), [`docs/security.md`](../../docs/security.md).
