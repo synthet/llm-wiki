@@ -16,7 +16,6 @@ import os
 import re
 import shutil
 import sys
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -188,15 +187,14 @@ def run_pipeline(
 
             # 3. Verified cleanup
             deleted = False
-            if ingest_ok and cleanup:
-                if verify_file_in_store(service, p, digest):
-                    try:
-                        p.unlink()
-                        deleted = True
-                        cleaned_up.append(str(p))
-                    except Exception as exc:
-                        deleted = False
-                        err_msg = f"Unlink failed: {exc}"
+            if ingest_ok and cleanup and verify_file_in_store(service, p, digest):
+                try:
+                    p.unlink()
+                    deleted = True
+                    cleaned_up.append(str(p))
+                except Exception as exc:
+                    deleted = False
+                    err_msg = f"Unlink failed: {exc}"
 
             results.append({
                 "path": str(p),
@@ -281,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         json.dump(summary, sys.stdout, indent=2, sort_keys=True)
         sys.stdout.write("\n")
     else:
-        print(f"=== LLM Wiki Downloads Pipeline ===")
+        print("=== LLM Wiki Downloads Pipeline ===")
         print(f"Source Directory: {summary['downloads_dir']}")
         print(f"Mode: {'RUN (mutations enabled)' if summary['execute'] else 'DRY-RUN (no changes made)'}")
         print(f"Cleanup: {'ENABLED (verified originals removed)' if summary['cleanup'] else 'DISABLED'}")
@@ -292,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Unsupported Files: {summary['unsupported_skipped_count']}")
 
         if summary["execute"]:
-            print(f"\n--- Execution Outcomes ---")
+            print("\n--- Execution Outcomes ---")
             for r in summary["results"]:
                 status = "OK" if r["ingest_ok"] else f"FAIL ({r['error']})"
                 re_tag = " [REVERSE-ENG -> _local]" if r["is_reverse_engineering"] else ""
