@@ -22,7 +22,7 @@ The checked-in config enables the official OpenAI developer-docs MCP endpoint, t
 subagent concurrency. It intentionally does not pin a model, approval policy, or sandbox mode;
 those remain user/workspace choices.
 
-Repository skill **`llm-wiki`** (under `.agents/skills/llm-wiki/`) covers evidence-bound workflows and
+Repository skill **`wiki-operations`** (under `.agents/skills/wiki-operations/`) covers evidence-bound workflows and
 how OKF `docs/` differs from the `.llmwiki/` store. MCP details: [`docs/mcp-and-editors.md`](../docs/mcp-and-editors.md).
 
 ## Asset mapping
