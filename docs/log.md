@@ -30,3 +30,7 @@ Format: `- YYYY-MM-DD: <verb> — <details and paths>` (verbs: `created`, `updat
 ## 2026-06
 
 - 2026-06-16: created — initial framework docs (README, INDEX, CANONICAL_SOURCES, OKF_ADOPTION, WIKI_SCHEMA, ai-workflow, security, project).
+
+- 2026-11-03: updated — ingested the Vexlum MCP and UI E2E session note (`wiki/notes/vexlum-mcp-and-ui-e2e-2026-11-03.md`, revision `4f4efbe6`) into 29 candidate claims under `Vexlum MCP entry point` and `Vexlum UI E2E suite`; PR #784 and #768 were open at compile time. Validation found zero errors; rendering completed for 149 pages.
+
+- 2026-11-03: updated — refreshed the Vexlum MCP and UI E2E note (revision `07117353`) after PRs #784, #768 and #794 merged, adding the headless defaults and the #785 run results; 34 candidate claims replace the 29 from revision `4f4efbe6`, which are now stale. Validation found zero errors; rendering completed for 149 pages.
