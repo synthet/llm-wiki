@@ -28,7 +28,7 @@ python scripts/validate_cli_skills.py      # CLI skill structure (when CLI skill
 - **Cursor:** copy `.cursor/mcp.example.json` → `.cursor/mcp.json` and reload MCP.
 - **Claude Code:** enable `llmwiki-ro-core` from `.mcp.json` in local settings.
 - **Codex:** trust the repo so `.codex/config.toml` loads.
-- **Skill:** `llm-wiki` — OKF `docs/` vs `.llmwiki/`; see [`docs/mcp-and-editors.md`](../docs/mcp-and-editors.md).
+- **Skill:** `wiki-operations` — OKF `docs/` vs `.llmwiki/`; see [`docs/mcp-and-editors.md`](../docs/mcp-and-editors.md).
 - **Smoke:** `uv run python -m pytest -q tests/test_mcp_sdk.py`
 
 ## Optional MCP (fff, Graphify)

@@ -18,7 +18,7 @@ Close the loop after product-wiki writes or when the user asks to maintain docs/
 Does **not** invent new claims or grant review. Pair with `/wiki-ingest` for new evidence and
 `/wiki-lint` for deeper structural audits.
 
-Load the `llm-wiki` skill first. Read [`docs/WIKI_SCHEMA.md`](../../docs/WIKI_SCHEMA.md) before
+Load the `wiki-operations` skill first. Read [`docs/WIKI_SCHEMA.md`](../../docs/WIKI_SCHEMA.md) before
 large `docs/` edits.
 
 ## When to run

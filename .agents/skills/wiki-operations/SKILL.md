@@ -1,5 +1,5 @@
 ---
-name: llm-wiki
+name: wiki-operations
 description: Use when searching, ingesting, compiling, reviewing, refreshing, validating, rendering, maintaining docs/index/log, or answering from this repository's local LLM Wiki through its CLI or MCP server. Also when the user says "update llm wiki".
 capability: "evidence-bound LLM Wiki workflow"
 side_effect_level: local_write
