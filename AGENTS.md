@@ -39,8 +39,8 @@ uv run python -m compileall -q src tests  # source compilation
 
 The product LLM Wiki MCP server is **on by default** across all agent harnesses (read/search only).
 Full setup matrix: [`docs/mcp-and-editors.md`](docs/mcp-and-editors.md). Agent workflow skill:
-[`llm-wiki`](.claude/skills/llm-wiki/SKILL.md) (OKF `docs/` vs `.llmwiki/` in
-[`references/mcp-and-okf.md`](.claude/skills/llm-wiki/references/mcp-and-okf.md)).
+[`wiki-operations`](.claude/skills/wiki-operations/SKILL.md) (OKF `docs/` vs `.llmwiki/` in
+[`references/mcp-and-okf.md`](.claude/skills/wiki-operations/references/mcp-and-okf.md)).
 
 Available MCP tools (read-only by default):
 - **Search & Q&A:** `search`, `ask`, `stats`, `backlinks`
