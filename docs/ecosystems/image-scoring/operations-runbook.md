@@ -4,7 +4,7 @@ title: Image Scoring operations runbook
 description: Layout verify, backend doctor, gallery doctor, Docker, and wiki ingest refresh.
 resource: ecosystems/image-scoring/operations-runbook.md
 tags: [image-scoring, runbook, operations]
-timestamp: 2026-09-27T00:00:00Z
+timestamp: 2026-11-05T00:00:00Z
 okf_version: 0.1
 ---
 
@@ -58,6 +58,15 @@ Human-review new **candidate** claims before relying on them in `ask` (default r
 cd D:\Projects\image-scoring
 .\scripts\git-status-all.ps1
 ```
+
+## 7. Update a remote GPU runner
+
+Full procedure: [Remote GPU runner](https://github.com/synthet/image-scoring-pipeline/blob/master/docs/guides/REMOTE_GPU_RUNNER.md), section "Update a runner".
+
+- Host and runner must share `API_VERSION`. On a mismatch every remote phase fails and fallback does not apply, so update them together.
+- Every compose command that reads `docker-compose.gpu-runner.yml` needs `GPU_RUNNER_TOKEN`, including `build`.
+- Verify with `GpuRunnerClient.check_phase(phase)` from the host. `ready_client()` can pass through the embedded backend without contacting the runner.
+- `check_phase` does not cover model weights, so score one small folder after an update.
 
 ## Config overrides
 
