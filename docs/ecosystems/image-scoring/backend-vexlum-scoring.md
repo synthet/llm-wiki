@@ -45,3 +45,7 @@ Fast subset (see `AGENTS.md`): `pytest -m "not gpu and not db and not ml"`. WSL 
 - Gallery consumer: [gallery-driftara.md](gallery-driftara.md)
 - Eye-quality phase: [model-eye-quality.md](model-eye-quality.md)
 - Canonical table: [canonical-sources.md](canonical-sources.md)
+
+## Research snapshot (2026-10-23)
+
+See [model-pipeline-skills-synergy-2026-10-23.md](model-pipeline-skills-synergy-2026-10-23.md) for inspected commit identities, implemented versus proposed integration, provenance gaps and evaluation gates. This is a dated research source; recommendations do not change runtime policy.

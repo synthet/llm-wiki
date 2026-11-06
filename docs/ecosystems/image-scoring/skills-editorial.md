@@ -30,3 +30,7 @@ Authority: `docs/image-scoring-db.md`, skill `imgscore-db`.
 
 - [backend-vexlum-scoring.md](backend-vexlum-scoring.md)
 - [agents-mcp-and-jev.md](agents-mcp-and-jev.md)
+
+## Research snapshot (2026-10-23)
+
+See [model-pipeline-skills-synergy-2026-10-23.md](model-pipeline-skills-synergy-2026-10-23.md) for inspected commit identities, implemented versus proposed integration, provenance gaps and evaluation gates. This is a dated research source; recommendations do not change runtime policy.
