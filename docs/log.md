@@ -4,6 +4,10 @@ Append-only. One line per wiki restructure, newest under the current month.
 Format: `- YYYY-MM-DD: <verb> — <details and paths>` (verbs: `created`, `updated`, `ingested`,
 `lint-fixed`, `reorganized`).
 
+## 2026-11
+
+- 2026-11-05: updated — `docs/ecosystems/image-scoring/operations-runbook.md` (new section 7, updating a remote GPU runner).
+
 ## 2026-10
 
 - 2026-10-18: ingested — Antigravity (37 articles), Codex (95 articles), Claude Code (528 articles), and deep-research-report (2).md; backed up .llmwiki/wiki.db and objects/ to D:/backup-drive/llm-wiki-backups/synthet-llm-wiki/2026-10-18_014459/.
