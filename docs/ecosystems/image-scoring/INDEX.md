@@ -22,3 +22,5 @@ okf_version: 0.1
 - [agents-mcp-and-jev.md](agents-mcp-and-jev.md)
 - [operations-runbook.md](operations-runbook.md)
 - [infrastructure-agents-wiki-jev.md](infrastructure-agents-wiki-jev.md)
+
+- [model-pipeline-skills-synergy-2026-10-23.md](model-pipeline-skills-synergy-2026-10-23.md) — dated model/pipeline/skills synergy research, snapshot identities, gates and evidence qualifications

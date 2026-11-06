@@ -52,3 +52,7 @@ inventing APIs, schema names, or ports.
 
 - [INDEX.md](INDEX.md) — flat page list
 - Parent: [../INDEX.md](../INDEX.md)
+
+## Cross-project research
+
+- [model-pipeline-skills-synergy-2026-10-23.md](model-pipeline-skills-synergy-2026-10-23.md) — localization, independent evaluation, editorial evidence and color-export integration opportunities.

@@ -49,7 +49,7 @@ Thirteen skills under `.claude/skills/` cover agent-safe CLI usage (see [`.agent
 | `mcp-code-intelligence` | MCP tiers (incl. optional fff) |
 | `install-checklist` | Human workstation provisioning |
 | `windows-agent-tooling` / `wsl2-agent-tooling` | Platform split |
-| `llm-wiki` | Evidence-bound `.llmwiki/` via CLI/MCP; OKF `docs/` boundaries — see `references/mcp-and-okf.md` |
+| `wiki-operations` | Evidence-bound `.llmwiki/` via CLI/MCP; OKF `docs/` boundaries — see `references/mcp-and-okf.md` |
 
 Validate after changes: `python scripts/validate_cli_skills.py`.
 
@@ -59,7 +59,7 @@ Validate after changes: `python scripts/validate_cli_skills.py`.
 
 ## Default MCP: LLM Wiki (`llmwiki-ro-core`)
 
-Read/search tools for the product wiki ship in [`.mcp.json`](../../.mcp.json), [`.cursor/mcp.example.json`](../../.cursor/mcp.example.json), and [`.codex/config.toml`](../../.codex/config.toml). Setup: [`mcp-and-editors.md`](../mcp-and-editors.md). Workflow: **`llm-wiki`** skill and `/wiki-*` commands.
+Read/search tools for the product wiki ship in [`.mcp.json`](../../.mcp.json), [`.cursor/mcp.example.json`](../../.cursor/mcp.example.json), and [`.codex/config.toml`](../../.codex/config.toml). Setup: [`mcp-and-editors.md`](../mcp-and-editors.md). Workflow: **`wiki-operations`** skill and `/wiki-*` commands.
 
 ## Optional MCP (fff)
 
