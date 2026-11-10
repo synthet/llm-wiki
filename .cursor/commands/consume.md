@@ -20,7 +20,7 @@ Load the **`consume`** skill and follow its playbook. Pair with `/wiki-maintain`
 
 ## Inputs
 
-- Target directory (default: discover under `allowed_roots`, or user names `Downloads` / `D:/Downloads`).
+- Target directory (default: discover under `allowed_roots`, or user names a `Downloads` folder).
 - Whether to mutate (`--run`), auto-compile, render, and cleanup (confirm cleanup only when digests verify).
 
 ## Steps

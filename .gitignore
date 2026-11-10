@@ -55,3 +55,6 @@ Thumbs.db
 *-chat.md
 *export*.md
 202*-*.md
+
+# Local-only notes anywhere in the tree
+**/_local/

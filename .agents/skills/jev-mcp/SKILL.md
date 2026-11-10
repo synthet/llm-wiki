@@ -58,4 +58,4 @@ and deterministic rules in normal code; give Jev narrow semantic judgments only.
   A model result cannot grant permission, weaken a deny, or mark wiki claims reviewed.
 - Preserve wiki modes: agent mode makes zero model calls; local mode permits loopback endpoints
   only. Never use this skill to silently route either mode to the paid API.
-- Canonical server lives at `D:\Projects\jev-mcp` (`AGENTS.md`, `README.md`).
+- Canonical server lives at `<projects-root>\jev-mcp` (`AGENTS.md`, `README.md`).

@@ -19,15 +19,15 @@ The pipeline discovers download directories when:
 
 1. **Scan & Plan**:
    ```bash
-   uv run python scripts/wiki_ingest_pipeline.py --dir "D:/Downloads" --extensions .md,.txt,.pdf
+   uv run python scripts/wiki_ingest_pipeline.py --dir "<downloads-dir>" --extensions .md,.txt,.pdf
    ```
 2. **Execute Ingest & Compile**:
    ```bash
-   uv run python scripts/wiki_ingest_pipeline.py --dir "D:/Downloads" --run --auto-compile --render
+   uv run python scripts/wiki_ingest_pipeline.py --dir "<downloads-dir>" --run --auto-compile --render
    ```
 3. **Verify and Clean**:
    ```bash
-   uv run python scripts/wiki_ingest_pipeline.py --dir "D:/Downloads" --run --cleanup
+   uv run python scripts/wiki_ingest_pipeline.py --dir "<downloads-dir>" --run --cleanup
    ```
 4. **Audit and Validate**:
    ```bash

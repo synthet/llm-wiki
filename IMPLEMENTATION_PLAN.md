@@ -4,8 +4,8 @@
 
 Build a Python 3.11+ knowledge compiler in [synthet/llm-wiki](https://github.com/synthet/llm-wiki), using these references:
 
-- `D:\Downloads\llmwikitoolkit.patch` as an audited implementation starter.
-- `D:\Downloads\deep-research-report (4).md` as product and architecture research.
+- `<downloads>\llmwikitoolkit.patch` as an audited implementation starter.
+- `<downloads>\deep-research-report (4).md` as product and architecture research.
 - [VectifyAI/PageIndex](https://github.com/VectifyAI/PageIndex) for hierarchical, vectorless retrieval concepts.
 - [VectifyAI/pageindex-mcp](https://github.com/VectifyAI/pageindex-mcp) for MCP schemas, resources, document validation, bounded retries, and actionable errors.
 

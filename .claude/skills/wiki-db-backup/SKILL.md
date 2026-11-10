@@ -20,11 +20,11 @@ and object bytes may include private documents).
 # Plan only (paths + sizes, no writes)
 python .claude/skills/wiki-db-backup/scripts/harness.py --dry-run --json
 
-# Default destination: D:/backup-drive or D:/Google Drive when present, else LLMWIKI_DB_BACKUP_ROOT
+# Default destination: LLMWIKI_DB_BACKUP_ROOT (required unless --dest is passed)
 python .claude/skills/wiki-db-backup/scripts/harness.py --json
 
 # Custom folder (parent must exist or be creatable)
-python .claude/skills/wiki-db-backup/scripts/harness.py --dest "D:/backup-drive/llm-wiki-backups/synthet-llm-wiki" --json
+python .claude/skills/wiki-db-backup/scripts/harness.py --dest "<backup-root>/llm-wiki-backups/synthet-llm-wiki" --json
 
 # Include content-addressed objects/ tree (larger, needed for full filesystem restore)
 python .claude/skills/wiki-db-backup/scripts/harness.py --include-objects --json

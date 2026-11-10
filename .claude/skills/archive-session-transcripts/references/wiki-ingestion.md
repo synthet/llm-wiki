@@ -3,15 +3,15 @@
 Use this after conversion. Confirm the target wiki exists; never initialize or relocate
 it implicitly. Inspect its current CLI help when an installed version differs.
 
-The workstation's CLI lives at `D:\Projects\synthet-llm-wiki\.venv\Scripts\llmwiki.exe`.
+The workstation's CLI lives at `<wiki-root>\.venv\Scripts\llmwiki.exe`.
 Use the installed `llmwiki` command if available; otherwise invoke that executable with
 PowerShell's call operator. From the wiki checkout, `uv run llmwiki` is another option.
 
 ```powershell
-llmwiki --root D:\Projects\synthet-llm-wiki --mode agent ingest <absolute-note-path> --json
-llmwiki --root D:\Projects\synthet-llm-wiki sources --id <source-id> --json
-llmwiki --root D:\Projects\synthet-llm-wiki validate --json
-llmwiki --root D:\Projects\synthet-llm-wiki render --json
+llmwiki --root <wiki-root> --mode agent ingest <absolute-note-path> --json
+llmwiki --root <wiki-root> sources --id <source-id> --json
+llmwiki --root <wiki-root> validate --json
+llmwiki --root <wiki-root> render --json
 ```
 
 Placeholders denote arguments, not literal runnable shell syntax. Use an argument array
