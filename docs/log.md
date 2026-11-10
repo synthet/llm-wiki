@@ -10,15 +10,15 @@ Format: `- YYYY-MM-DD: <verb> — <details and paths>` (verbs: `created`, `updat
 
 ## 2026-10
 
-- 2026-10-18: ingested — Antigravity (37 articles), Codex (95 articles), Claude Code (528 articles), and deep-research-report (2).md; backed up .llmwiki/wiki.db and objects/ to D:/Goolge Drive/llm-wiki-backups/synthet-llm-wiki/2026-10-18_014459/.
+- 2026-10-18: ingested — Antigravity (37 articles), Codex (95 articles), Claude Code (528 articles), and deep-research-report (2).md; backed up .llmwiki/wiki.db and objects/ to the off-repo backup root ($LLMWIKI_DB_BACKUP_ROOT)/2026-10-18_014459/.
 - 2026-10-10: ingested — 80 sanitized historical session notes; complete originals privately archived with SHA-256 receipts; immutable revisions verified; validate/render completed. Private indexes are kept with the ignored source notes.
-- 2026-10-05: ingested — `/consume` markdown from `C:/Users/dmnsy/Downloads` and `D:/Downloads` (13 files, reused revisions, SHA-256 verified cleanup); backed up `.llmwiki/wiki.db` to `D:/Goolge Drive/llm-wiki-backups/synthet-llm-wiki/2026-10-05_193357/`.
+- 2026-10-05: ingested — `/consume` markdown from the user and secondary Downloads folders (13 files, reused revisions, SHA-256 verified cleanup); backed up `.llmwiki/wiki.db` to `the off-repo backup root ($LLMWIKI_DB_BACKUP_ROOT)/2026-10-05_193357/`.
 
 ## 2026-09
 
-- 2026-09-27: created — comprehensive OKF bundle `docs/ecosystems/image-scoring/` (13 pages: canonical sources, products, hub, MCP/Jev, operations, infrastructure); `scripts/ingest_image_scoring_ecosystem.py`; hub `image-scoring/scripts/llmwiki-sync-ecosystem.ps1`; added `D:/Projects/image-scoring` to `.llmwiki` allowed_roots.
-- 2026-09-24: ingested — `/consume` batch from `D:/Downloads` (53 files scanned, 49 ingested, 42 candidate claims compiled, 115 pages rendered); 4 encrypted PDFs skipped (`VTR_146.pdf`, `VTR_146 2.pdf`, two untitled PDFs); validated store clean; Downloads not cleaned up.
-- 2026-09-24: maintained — `/consume --cleanup` on `D:/Downloads`: SHA-256 verified and removed 49 ingested files from disk; 4 encrypted PDFs left in Downloads.
+- 2026-09-27: created — comprehensive OKF bundle `docs/ecosystems/image-scoring/` (13 pages: canonical sources, products, hub, MCP/Jev, operations, infrastructure); `scripts/ingest_image_scoring_ecosystem.py`; hub `image-scoring/scripts/llmwiki-sync-ecosystem.ps1`; added `<projects-root>/image-scoring` to `.llmwiki` allowed_roots.
+- 2026-09-24: ingested — `/consume` batch from Downloads (53 files scanned, 49 ingested, 42 candidate claims compiled, 115 pages rendered); 4 encrypted personal PDFs skipped; validated store clean; Downloads not cleaned up.
+- 2026-09-24: maintained — `/consume --cleanup` on Downloads: SHA-256 verified and removed 49 ingested files from disk; 4 encrypted PDFs left in Downloads.
 - 2026-09-21: reorganized — private knowledge remote [synthet/my-docs](https://github.com/synthet/my-docs) is now checked out as `wiki/` (no nested `my-docs/` folder); parent gitignores `wiki/`; public `docs/private-docs.md` updated with clone instructions.
 - 2026-09-20: maintained — docs INDEX/README already pointed at `private-docs.md`; fixed `WIKI_SCHEMA.md` folder taxonomy to match this checkout (cleared OKF broken-folder warnings); indexed `wiki/notes/README.md`; added `/wiki-maintain` and enriched `llm-wiki` skill with post-ingest evidence/locator and candidate-retract guardrails.
 - 2026-09-20: ingested — photo burst eye-sharpness culling notes (`wiki/notes/photo-burst-eye-sharpness-culling-2026-09-20.md`); compiled 32 candidate claims into entities `Vexlum image scoring database`, `Vexlum image quality models`, `Nikon NEF embedded preview extraction`, `Photo burst eye-sharpness culling`, and `OpenCV sharpness measurement pitfalls`; validated and rendered with `--include-unreviewed`. Three claims still carry loosely-bounded evidence quotes and need retract-and-recompile by a reviewer.

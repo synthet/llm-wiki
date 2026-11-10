@@ -13,7 +13,7 @@ okf_version: 0.1
 ## 1. Verify workstation layout
 
 ```powershell
-cd D:\Projects\image-scoring
+cd <projects-root>\image-scoring
 .\scripts\layout-doctor.ps1
 ```
 
@@ -55,7 +55,7 @@ Human-review new **candidate** claims before relying on them in `ask` (default r
 ## 6. Git status across siblings
 
 ```powershell
-cd D:\Projects\image-scoring
+cd <projects-root>\image-scoring
 .\scripts\git-status-all.ps1
 ```
 

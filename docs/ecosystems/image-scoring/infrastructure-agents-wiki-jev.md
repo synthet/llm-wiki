@@ -28,7 +28,7 @@ Private operator notes: optional git clone `synthet/my-docs` into `wiki/` — se
 
 ## jev-mcp
 
-TypeSafe **System One** stdio server. Checkout `D:\Projects\jev-mcp`; token in `jev-mcp/.env` (`JEV_ENV_FILE`). Integrate from hub: `.\scripts\jev-mcp-integrate.ps1`.
+TypeSafe **System One** stdio server. Checkout `<projects-root>\jev-mcp`; token in `jev-mcp/.env` (`JEV_ENV_FILE`). Integrate from hub: `.\scripts\jev-mcp-integrate.ps1`.
 
 ## Optional siblings
 

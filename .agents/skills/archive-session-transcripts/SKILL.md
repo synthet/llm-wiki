@@ -12,7 +12,7 @@ risk_class: high
 # Archive session transcripts
 
 Turn finished session exports into useful project documentation and verified local wiki
-sources. Default wiki root on this workstation: `D:\Projects\synthet-llm-wiki`.
+sources. Default wiki root: the `synthet-llm-wiki` checkout (`<projects-root>\synthet-llm-wiki`).
 Use the bundled scripts relative to the directory containing this SKILL.md, regardless
 of which editor or installation loaded it.
 
@@ -43,7 +43,7 @@ Run the read-only scanner (replace the skill path with the loaded installation):
 
 ```powershell
 python .claude/skills/archive-session-transcripts/scripts/scan.py --help
-python .claude/skills/archive-session-transcripts/scripts/scan.py --root . --root D:\Projects\another-project
+python .claude/skills/archive-session-transcripts/scripts/scan.py --root . --root <projects-root>\another-project
 ```
 
 It emits JSON metadata, never transcript excerpts. Findings are **candidates**, not

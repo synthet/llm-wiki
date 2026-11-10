@@ -13,15 +13,15 @@ okf_version: 0.1
 ## Sibling directories (this workstation)
 
 ```text
-D:\Projects\image-scoring              # meta hub
-D:\Projects\image-scoring-pipeline        # Vexlum Scoring
-D:\Projects\image-scoring-gallery        # Driftara Gallery
-D:\Projects\image-scoring-model          # eye-quality
-D:\Projects\image-scoring-ui             # design tokens npm package
-D:\Projects\image-scoring-skills         # editorial / carousel prompts
-D:\Projects\synthet-llm-wiki             # evidence wiki product + this OKF bundle
-D:\Projects\jev-mcp                    # TypeSafe Jev MCP
-D:\Projects\synthet-code-framework       # generic agent scaffold (upstream)
+<projects-root>\image-scoring              # meta hub
+<projects-root>\image-scoring-pipeline        # Vexlum Scoring
+<projects-root>\image-scoring-gallery        # Driftara Gallery
+<projects-root>\image-scoring-model          # eye-quality
+<projects-root>\image-scoring-ui             # design tokens npm package
+<projects-root>\image-scoring-skills         # editorial / carousel prompts
+<projects-root>\synthet-llm-wiki             # evidence wiki product + this OKF bundle
+<projects-root>\jev-mcp                    # TypeSafe Jev MCP
+<projects-root>\synthet-code-framework       # generic agent scaffold (upstream)
 ```
 
 Machine-readable manifest: hub [`repos.manifest.json`](https://github.com/synthet/image-scoring/blob/main/repos.manifest.json).
@@ -46,7 +46,7 @@ Verify: `.\scripts\layout-doctor.ps1` from the hub root.
 ## Clone missing repos
 
 ```powershell
-cd D:\Projects\image-scoring
+cd <projects-root>\image-scoring
 .\scripts\clone-siblings.ps1
 ```
 

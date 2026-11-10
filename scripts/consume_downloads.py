@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reusable batch ingestion, markdown preservation, and verified cleanup for Downloads.
 
-Safely feeds documents from D:/Downloads (or user Downloads) into the local LLM Wiki
+Safely feeds documents from a Downloads folder ($LLMWIKI_DOWNLOADS_DIR or ~/Downloads) into the local LLM Wiki
 (both SQLite db and Markdown notes under wiki/notes/_local/), while strictly guarding
 sensitive personal files (financial, tax, IDs) and isolating reverse-engineering
 topics to local-only storage.
@@ -251,8 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--dir",
         type=Path,
-        default=Path("D:/Downloads"),
-        help="Downloads folder to scan (default: D:/Downloads)",
+        default=Path(os.environ.get("LLMWIKI_DOWNLOADS_DIR") or Path.home() / "Downloads"),
+        help="Downloads folder to scan (default: $LLMWIKI_DOWNLOADS_DIR or ~/Downloads)",
     )
     parser.add_argument("--run", action="store_true", help="Execute ingestion and note preservation")
     parser.add_argument(

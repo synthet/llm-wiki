@@ -36,12 +36,8 @@ def resolve_backup_base(explicit: Path | None) -> Path:
     env = os.environ.get("LLMWIKI_DB_BACKUP_ROOT", "").strip()
     if env:
         return Path(env).expanduser().resolve()
-    for drive in (Path("D:/Goolge Drive"), Path("D:/Google Drive")):
-        if drive.is_dir():
-            return (drive / "llm-wiki-backups" / "synthet-llm-wiki").resolve()
     raise FileNotFoundError(
-        "No backup destination: pass --dest, set LLMWIKI_DB_BACKUP_ROOT, "
-        "or create D:/Goolge Drive (or D:/Google Drive)."
+        "No backup destination: pass --dest or set LLMWIKI_DB_BACKUP_ROOT."
     )
 
 
