@@ -41,6 +41,12 @@ testpaths = ["tests"]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+# Global skills owned and linted by synthet-code-framework (library.json `global: true`); the copies here and in
+# the generated .agents/.cursor trees are not this repo's code. Project-owned skills are still linted.
+extend-exclude = [
+    "*/skills/resume-task/**",
+    "*/skills/archive-session-transcripts/**",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
