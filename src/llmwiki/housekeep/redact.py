@@ -2,7 +2,7 @@
 
 Two independent detectors guard every hand-off:
 
-* ``secret_labels`` uses known credential patterns (the same set as the vault housekeeping harness and
+* ``finding_labels`` uses known credential patterns (the same set as the vault housekeeping harness and
   ``scripts/ci/secret_detection.py``).
 * ``entropy_hits`` flags long, random-looking tokens that no pattern knows.
 
@@ -78,7 +78,7 @@ def _value(match: re.Match[str]) -> str:
     return match.group(0)
 
 
-def secret_labels(text: str) -> list[str]:
+def finding_labels(text: str) -> list[str]:
     """Labels of credential patterns present in ``text``. Values are never returned."""
     return sorted(
         {
@@ -139,7 +139,7 @@ def _term_re(term: str) -> re.Pattern[str]:
 
 def residual(text: str) -> list[str]:
     """What is still risky in already-redacted text; empty means safe to hand off."""
-    found = secret_labels(text)
+    found = finding_labels(text)
     if any(_term_re(term).search(text) for term in identity_terms()):
         found.append("local identity term")
     if PEM_BLOCK_RE.search(text):
