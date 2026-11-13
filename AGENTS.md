@@ -30,7 +30,7 @@ uv run python -m compileall -q src tests  # source compilation
 (synthet-code-framework `docs/housekeeping-protocol.md`). Keep plans and staging dirs in a scratch folder.
 
 ```bash
-llmwiki housekeep transcripts scan --scan-root D:/Projects --out <scratch>/plan.json   # read-only, bounded
+llmwiki housekeep transcripts scan --scan-root <projects-root> --out <scratch>/plan.json   # read-only, bounded
 llmwiki housekeep transcripts describe --plan <scratch>/plan.json --swarm <synthet-agent-swarm>/agent-orchestrator/dist/index.js
 llmwiki housekeep transcripts jev --plan <scratch>/plan.json      # payload for one jev_system_one batch
 llmwiki housekeep transcripts decide --plan <scratch>/plan.json --answers <scratch>/answers.json

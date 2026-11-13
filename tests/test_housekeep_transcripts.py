@@ -106,15 +106,15 @@ def test_redact_catches_every_planted_secret():
 def test_identity_terms_are_redacted_and_fail_closed(monkeypatch):
     from llmwiki.housekeep import redact as redact_module
 
-    monkeypatch.setenv("HK_REDACT_TERMS", "quillmoss,ZEPHYRBOX")
+    monkeypatch.setenv("HK_REDACT_TERMS", "quillmoss,HOSTBRAVO")
     redact_module.identity_terms.cache_clear()
     try:
         raw = (
-            'run as ZEPHYRBOX\\quillmoss; path "\\u0027C:\\\\Users\\\\quillmoss\\\\.gemini"'
+            'run as HOSTBRAVO\\quillmoss; path "\\u0027C:\\\\Users\\\\quillmoss\\\\.gemini"'
             ' and grep -Pattern "quillmoss" review-cusersquillmossappdata.txt list\\nquillmoss\\n'
         )
         text = redact(raw)
-        assert "quillmoss" not in text.lower() and "zephyrbox" not in text.lower()
+        assert "quillmoss" not in text.lower() and "hostbravo" not in text.lower()
         assert residual("hello quillmoss") == ["local identity term"]
     finally:
         monkeypatch.delenv("HK_REDACT_TERMS")
