@@ -24,6 +24,30 @@ uv run ruff check .                       # lint
 uv run python -m compileall -q src tests  # source compilation
 ```
 
+### Housekeeping: stale session transcripts
+
+`llmwiki housekeep transcripts` implements the shared housekeeping protocol
+(synthet-code-framework `docs/housekeeping-protocol.md`). Keep plans and staging dirs in a scratch folder.
+
+```bash
+llmwiki housekeep transcripts scan --scan-root D:/Projects --out <scratch>/plan.json   # read-only, bounded
+llmwiki housekeep transcripts describe --plan <scratch>/plan.json --swarm <synthet-agent-swarm>/agent-orchestrator/dist/index.js
+llmwiki housekeep transcripts jev --plan <scratch>/plan.json      # payload for one jev_system_one batch
+llmwiki housekeep transcripts decide --plan <scratch>/plan.json --answers <scratch>/answers.json
+llmwiki housekeep transcripts apply --plan <scratch>/plan.json [--apply] [--compile]
+llmwiki housekeep transcripts verify|restore --manifest <manifest>
+llmwiki housekeep transcripts purge --manifest <manifest> --approve T0003 --approval-note "<owner's words>" [--apply]
+```
+
+- Everything sent to the describe agent, written to the plan, the Jev payload or a note is redacted (credentials, key
+  blocks, env-style assignments, high-entropy tokens, home path, local user/host/git identity, emails, private IPs)
+  and re-checked; a residual hit holds the item. Add private identifiers through `HK_REDACT_TERMS=a,b`.
+- Notes go to the git-ignored `wiki/notes/_local/session-archives/<project>/` with a stable source id; originals
+  move to `<scan-root>/_backup/housekeeping-<date>/transcripts/`. Git-tracked or younger-than-7-day exports are held.
+- Full-transcript notes (`scan --allow-full`) and claim compilation (`apply --compile`) are opt-in: ingested claim
+  text can reach the TypeSafe reranker at query time. Permanent deletion is only `purge` with approved ids.
+- Exit codes inside `housekeep`: 0 ok, 1 some items failed, 2 bad input, 3 missing prerequisite (no swarm).
+
 ## MCP servers
 
 - Define project servers in [`.mcp.json`](.mcp.json) (Claude Code), copy
