@@ -67,33 +67,8 @@ This inventory lists the canonical Claude-authored assets that are mirrored to C
 | `database-migrations` | `.claude/skills/database-migrations/SKILL.md` | Use when creating or reviewing schema migrations, changing deployed tables, or planning a database schema rollout. |
 | `eval` | `.claude/skills/eval/SKILL.md` | Use at the end of an implemented task, merged PR, or multi-iteration agent workflow to capture quality signals in project memory. Apply when the user mentions eval, feedback loop, task quality, regression learnings, or session scoring. |
 | `export-chat` | `.claude/skills/export-chat/SKILL.md` | Use when the user types /export or /export-chat, or asks to export, save, dump, copy, or share the current chat, conversation, or agent transcript as a file or to the clipboard. Renders Cursor and Google Antigravity agent transcripts (user/assistant text plus full tool-call inputs) to Markdown. Also use to export an earlier Cursor chat by id. |
-| `framework-analyze` | `.claude/skills/framework-analyze/SKILL.md` | Explicit framework workflow: analyze |
-| `framework-audit-instructions` | `.claude/skills/framework-audit-instructions/SKILL.md` | Explicit framework workflow: audit-instructions |
-| `framework-check-subagents` | `.claude/skills/framework-check-subagents/SKILL.md` | Explicit framework workflow: check-subagents |
-| `framework-clarify` | `.claude/skills/framework-clarify/SKILL.md` | Explicit framework workflow: clarify |
-| `framework-compile-skill` | `.claude/skills/framework-compile-skill/SKILL.md` | Explicit framework workflow: compile-skill |
 | `framework-consume` | `.claude/skills/framework-consume/SKILL.md` | Explicit framework workflow: consume |
-| `framework-decompose` | `.claude/skills/framework-decompose/SKILL.md` | Explicit framework workflow: decompose |
-| `framework-dream-memory` | `.claude/skills/framework-dream-memory/SKILL.md` | Explicit framework workflow: dream-memory |
-| `framework-implement` | `.claude/skills/framework-implement/SKILL.md` | Explicit framework workflow: implement |
-| `framework-log-session` | `.claude/skills/framework-log-session/SKILL.md` | Explicit framework workflow: log-session |
-| `framework-memory-context` | `.claude/skills/framework-memory-context/SKILL.md` | Explicit framework workflow: memory-context |
-| `framework-mine` | `.claude/skills/framework-mine/SKILL.md` | Explicit framework workflow: mine |
-| `framework-plan` | `.claude/skills/framework-plan/SKILL.md` | Explicit framework workflow: plan |
-| `framework-pr-ready` | `.claude/skills/framework-pr-ready/SKILL.md` | Explicit framework workflow: pr-ready |
-| `framework-promote-memory` | `.claude/skills/framework-promote-memory/SKILL.md` | Explicit framework workflow: promote-memory |
-| `framework-release-notes` | `.claude/skills/framework-release-notes/SKILL.md` | Explicit framework workflow: release-notes |
-| `framework-run-codex-review` | `.claude/skills/framework-run-codex-review/SKILL.md` | Explicit framework workflow: run-codex-review |
-| `framework-run-gemini-review` | `.claude/skills/framework-run-gemini-review/SKILL.md` | Explicit framework workflow: run-gemini-review |
-| `framework-run-subagent-review` | `.claude/skills/framework-run-subagent-review/SKILL.md` | Explicit framework workflow: run-subagent-review |
-| `framework-spec` | `.claude/skills/framework-spec/SKILL.md` | Explicit framework workflow: spec |
-| `framework-task-claim` | `.claude/skills/framework-task-claim/SKILL.md` | Explicit framework workflow: task-claim |
-| `framework-tasks` | `.claude/skills/framework-tasks/SKILL.md` | Explicit framework workflow: tasks |
-| `framework-test-and-fix` | `.claude/skills/framework-test-and-fix/SKILL.md` | Explicit framework workflow: test-and-fix |
-| `framework-wiki-ingest` | `.claude/skills/framework-wiki-ingest/SKILL.md` | Explicit framework workflow: wiki-ingest |
-| `framework-wiki-lint` | `.claude/skills/framework-wiki-lint/SKILL.md` | Explicit framework workflow: wiki-lint |
 | `framework-wiki-maintain` | `.claude/skills/framework-wiki-maintain/SKILL.md` | Explicit framework workflow: wiki-maintain |
-| `framework-wiki-query` | `.claude/skills/framework-wiki-query/SKILL.md` | Explicit framework workflow: wiki-query |
 | `framework-wiki-review` | `.claude/skills/framework-wiki-review/SKILL.md` | Explicit framework workflow: wiki-review |
 | `git-and-diff-workflows` | `.claude/skills/git-and-diff-workflows/SKILL.md` | Use for safe Git and GitHub workflows: status, diffs, logs, branches, staging, commits, PR/issue inspection, and secret checks. Always apply before committing or when the user asks about git state, PRs, issues, or reviewing repository changes. |
 | `graphify-knowledge-graph` | `.claude/skills/graphify-knowledge-graph/SKILL.md` | Use when querying architecture, concept paths, god nodes, or communities via Graphify MCP or CLI; when the user mentions graphify, knowledge graph, GRAPH_REPORT, graphify-out, query_graph, or asks how two modules connect. Prefer this over broad rg/fff for structural “how does A relate to B” questions when the graph or MCP is available. Do not use for setup-tier comparisons (see mcp-code-intelligence) or ordinary text/filename search. |

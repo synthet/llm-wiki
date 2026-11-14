@@ -103,7 +103,9 @@ def _sync_codex() -> None:
     _reset_dir(CODEX_SKILLS)
     for child in sorted((CLAUDE / "skills").iterdir()):
         if child.is_dir():
-            shutil.copytree(child, CODEX_SKILLS / child.name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"))
+            shutil.copytree(
+                child, CODEX_SKILLS / child.name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo")
+            )
         else:
             shutil.copy2(child, CODEX_SKILLS / child.name)
     _reset_dir(CODEX_AGENTS)
