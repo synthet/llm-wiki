@@ -8,7 +8,7 @@ import hashlib
 import os
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent / '_runtime'
@@ -16,7 +16,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from llmwiki.config import discover_root  # noqa: E402
-
 from scripts.skill_harness.io_util import emit  # noqa: E402
 
 _WIKI_DB_NAMES = ("wiki.db", "wiki.db-wal", "wiki.db-shm")
@@ -52,7 +51,7 @@ def plan_backup(
     if not db_path.is_file():
         raise FileNotFoundError(f"Missing wiki database: {db_path}")
 
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H%M%S")
     backup_dir = dest_base / stamp
 
     files: list[dict] = []
