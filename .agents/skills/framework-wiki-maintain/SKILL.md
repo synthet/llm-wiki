@@ -18,7 +18,7 @@ Close the loop after product-wiki writes or when the user asks to maintain docs/
 Does **not** invent new claims or grant review. Pair with `/wiki-ingest` for new evidence and
 `/wiki-lint` for deeper structural audits.
 
-Load the `wiki-operations` skill first. Read [`docs/WIKI_SCHEMA.md`](../../docs/WIKI_SCHEMA.md) before
+Load the `wiki-operations` skill first. Read [`docs/WIKI_SCHEMA.md`](../../../docs/WIKI_SCHEMA.md) before
 large `docs/` edits.
 
 ## When to run
@@ -37,12 +37,12 @@ large `docs/` edits.
    repo's current convention). Use default reviewed-only render only when the user wants
    reviewed-only pages. Stop on a render conflict; do not overwrite manual page edits.
 4. **Handwritten notes hub:** If `wiki/notes/` gained or lost notes, update
-   [`wiki/notes/README.md`](../../wiki/notes/README.md) with a short dated index. Notes are not
+   `wiki/notes/README.md` (in the private wiki checkout) with a short dated index. Notes are not
    canonical until ingested.
 5. **Living docs index:** If `docs/` pages were added/renamed/removed, update the nearest
-   `INDEX.md`, and when relevant [`docs/INDEX.md`](../../docs/INDEX.md) and
-   [`docs/README.md`](../../docs/README.md).
-6. **Activity log:** Append one line under the current month in [`docs/log.md`](../../docs/log.md):
+   `INDEX.md`, and when relevant [`docs/INDEX.md`](../../../docs/INDEX.md) and
+   [`docs/README.md`](../../../docs/README.md).
+6. **Activity log:** Append one line under the current month in [`docs/log.md`](../../../docs/log.md):
    `- YYYY-MM-DD: <verb> — <details and paths>`
    Verbs: `ingested`, `created`, `updated`, `lint-fixed`, `reorganized`, `maintained`.
 7. **Quick docs lint (default):**
