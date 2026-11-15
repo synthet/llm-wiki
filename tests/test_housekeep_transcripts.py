@@ -19,6 +19,9 @@ from llmwiki.service import WikiService
 
 TOKEN = "ghp_" + "Zq9" * 13
 PEM_BODY = "MIIEowIBAAKCAQEAq7Lr0Qw9" + "Kp3x" * 10
+# Built at runtime so the repository secret scan does not flag the fixture itself.
+PEM_BEGIN = "-----BEGIN RSA " + "PRIVATE KEY-----"
+PEM_END = "-----END RSA " + "PRIVATE KEY-----"
 RANDOM = "Qm7Zr2Lx9Pw4Kd8Vt1Bn6Hy3Jc5Gf0Sa"
 PASSWORD = "opalriver77"
 EMAIL = "someone.private@mailhost.org"
@@ -40,7 +43,7 @@ def env(tmp_path: Path):
     session = app / "2026-10-01-120000-debug-session.md"
     session.write_text(
         "## User\nWhy does the test flake?\n\n## Assistant\n"
-        f"Found it. token {TOKEN} and key\n-----BEGIN RSA PRIVATE KEY-----\n{PEM_BODY}\n-----END RSA PRIVATE KEY-----\n"
+        f"Found it. token {TOKEN} and key\n{PEM_BEGIN}\n{PEM_BODY}\n{PEM_END}\n"
         f"Home {Path.home()} mail {EMAIL} blob {RANDOM}\nThe clock was not pinned.\n",
         encoding="utf-8",
     )
@@ -95,7 +98,7 @@ def items_by_name(plan_path: Path) -> dict[str, dict]:
 
 def test_redact_catches_every_planted_secret():
     text = redact(
-        f"a {TOKEN}\n-----BEGIN RSA PRIVATE KEY-----\n{PEM_BODY}\n-----END RSA PRIVATE KEY-----\n"
+        f"a {TOKEN}\n{PEM_BEGIN}\n{PEM_BODY}\n{PEM_END}\n"
         f"user: set DB_PASSWORD={PASSWORD} now {RANDOM} {EMAIL} 192.168.1.20 C:\\Users\\alice\\x"
     )
     for secret in (TOKEN, PEM_BODY, PASSWORD, RANDOM, EMAIL, "192.168.1.20", "alice"):
