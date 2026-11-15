@@ -192,3 +192,97 @@ def summary(plan: dict[str, Any]) -> dict[str, Any]:
         key = f"{item['kind']}:{item['action']}"
         counts[key] = counts.get(key, 0) + 1
     return {"plan_items": len(plan["items"]), "by_kind_action": dict(sorted(counts.items()))}
+
+
+# --------------------------------------------------------------------------- shared apply plumbing
+REPARSE_POINT = 0x400
+
+
+def is_link(path: Path) -> bool:
+    """Symlinks and Windows junctions/reparse points: never traverse or touch through them."""
+    import stat
+
+    try:
+        st = path.lstat()
+    except OSError:
+        return True
+    return stat.S_ISLNK(st.st_mode) or bool(getattr(st, "st_file_attributes", 0) & REPARSE_POINT)
+
+
+def sha256(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def inside(path: Path | str, root: Path | str) -> bool:
+    p, r = os.path.normcase(os.path.abspath(path)), os.path.normcase(os.path.abspath(root))
+    try:
+        return p != r and os.path.commonpath([p, r]) == r
+    except ValueError:
+        return False
+
+
+def check_backup_name(name: str) -> str:
+    import re
+
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}", name) or ".." in name:
+        raise HousekeepExit(EXIT_INPUT, {"ok": False, "error": "--backup-name must be a plain folder name"})
+    return name
+
+
+def quarantine(path: Path, scan_root: Path, backup_name: str, area: str, digest: str) -> Path:
+    """Move a file to <scan-root>/_backup/<backup-name>/<area>/<path relative to the root>."""
+    import shutil
+
+    dest = scan_root / "_backup" / backup_name / area / path.relative_to(scan_root)
+    if dest.exists():
+        dest = dest.with_name(f"{dest.stem}-{digest[:8]}{dest.suffix}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(path), dest)
+    return dest
+
+
+def store_digest(service: Any, source_id: str) -> str | None:
+    with service.store.reader() as con:
+        row = con.execute(
+            "SELECT sr.digest FROM sources s JOIN source_revisions sr ON s.current_revision_id = sr.id WHERE s.id = ?",
+            (source_id,),
+        ).fetchone()
+    return row["digest"] if row else None
+
+
+def purge_records(
+    manifest_path: Path, key: str, service: Any, *, approve: str, approval_note: str, do: bool = False
+) -> dict[str, Any]:
+    """Permanently delete approved quarantine copies listed under manifest[key].
+
+    Only plain files inside <scan-root>/_backup whose hash still matches are deleted, and an ingested item's wiki note
+    must still verify in the store first.
+    """
+    if not approve or not approval_note:
+        raise HousekeepExit(EXIT_INPUT, {"ok": False, "error": "purge needs --approve <ids> and --approval-note"})
+    manifest = load(manifest_path)
+    approved = set(filter(None, approve.split(",")))
+    done, skipped = [], []
+    for rec in manifest.get(key, []):
+        if rec["id"] not in approved or rec.get("purged") or not rec.get("to"):
+            continue
+        to = Path(rec["to"])
+        backup = Path(rec.get("scan_root") or "") / "_backup"
+        if not rec.get("scan_root") or not inside(to, backup) or is_link(to):
+            skipped.append({"id": rec["id"], "why": "quarantine path is not a plain file inside <scan-root>/_backup"})
+            continue
+        if not to.is_file() or sha256(to) != rec["sha256"]:
+            skipped.append({"id": rec["id"], "why": "quarantine copy missing or changed"})
+            continue
+        if rec.get("source_id") and store_digest(service, rec["source_id"]) != rec.get("note_digest"):
+            skipped.append({"id": rec["id"], "why": "wiki note no longer verifies; refusing to delete the original"})
+            continue
+        if do:
+            to.unlink()
+            rec.update(purged=now(), purge_approval=approval_note)
+        done.append(rec["id"])
+    if do and done:
+        save(manifest_path, manifest)
+    return {"dry_run": not do, "purged": done, "skipped": skipped}

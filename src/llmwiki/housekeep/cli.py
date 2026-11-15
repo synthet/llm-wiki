@@ -58,8 +58,79 @@ def add_parser(commands: argparse._SubParsersAction) -> None:
     purge.add_argument("--approval-note", default="")
     purge.add_argument("--apply", action="store_true")
 
+    _add_sanitize(tasks)
+
+
+def _add_sanitize(tasks: argparse._SubParsersAction) -> None:
+    sa = tasks.add_parser("sanitize", help="Secrets and machine-local data in project folders")
+    steps = sa.add_subparsers(dest="housekeep_step", required=True)
+    scan = steps.add_parser("scan")
+    scan.add_argument("--scan-root", type=Path, action="append", required=True, help="Projects root; repeatable")
+    scan.add_argument("--out", type=Path, required=True)
+    scan.add_argument("--owner", action="append", help="GitHub owner whose repos are scanned (default: gh user)")
+    scan.add_argument("--min-age-days", type=int, default=30, help="Untracked notes younger than this are left alone")
+    scan.add_argument("--max-files", type=int, default=50_000)
+    scan.add_argument("--allow-full", action="store_true", help="Offer wiki_full (whole redacted note) as an option")
+    describe = steps.add_parser("describe")
+    describe.add_argument("--plan", type=Path, required=True)
+    describe.add_argument("--swarm")
+    describe.add_argument("--staging", type=Path)
+    describe.add_argument("--harness", default="claude")
+    describe.add_argument("--max-items", type=int, default=40)
+    describe.add_argument("--budget-usd", type=float, default=0)
+    describe.add_argument("--timeout-ms", type=int, default=300_000)
+    describe.add_argument("--dry-run", action="store_true")
+    steps.add_parser("jev").add_argument("--plan", type=Path, required=True)
+    decide = steps.add_parser("decide")
+    decide.add_argument("--plan", type=Path, required=True)
+    decide.add_argument("--answers", type=Path, required=True)
+    decide.add_argument("--min-confidence", type=float, default=0.5)
+    apply = steps.add_parser("apply")
+    apply.add_argument("--plan", type=Path, required=True)
+    apply.add_argument("--apply", action="store_true", help="Act; without it this is a dry run")
+    apply.add_argument("--write-redacted", action="store_true", help="Write redacted copies of flagged tracked files")
+    apply.add_argument("--backup-name")
+    for name in ("verify", "restore"):
+        steps.add_parser(name).add_argument("--manifest", type=Path, required=True)
+    purge = steps.add_parser("purge")
+    purge.add_argument("--manifest", type=Path, required=True)
+    purge.add_argument("--approve", default="")
+    purge.add_argument("--approval-note", default="")
+    purge.add_argument("--apply", action="store_true")
+
+
+def _dispatch_sanitize(service: Any, args: argparse.Namespace) -> dict[str, Any]:
+    from . import sanitize
+
+    step = args.housekeep_step
+    if step == "scan":
+        return sanitize.scan(
+            args.scan_root, args.out, owners=args.owner, min_age_days=args.min_age_days, max_files=args.max_files,
+            allow_full=args.allow_full,
+        )  # fmt: skip
+    if step == "describe":
+        return sanitize.describe(
+            args.plan, args.staging, swarm_arg=args.swarm, max_items=args.max_items, budget_usd=args.budget_usd,
+            timeout_ms=args.timeout_ms, harness=args.harness, dry_run=args.dry_run,
+        )  # fmt: skip
+    if step == "jev":
+        return sanitize.jev(args.plan)
+    if step == "decide":
+        return sanitize.decide_cmd(args.plan, args.answers, args.min_confidence)
+    if step == "apply":
+        return sanitize.apply(
+            args.plan, service, do=args.apply, write_redacted=args.write_redacted, backup_name=args.backup_name
+        )
+    if step == "verify":
+        return sanitize.verify(args.manifest, service)
+    if step == "restore":
+        return sanitize.restore(args.manifest)
+    return sanitize.purge(args.manifest, service, approve=args.approve, approval_note=args.approval_note, do=args.apply)
+
 
 def dispatch(service: Any, args: argparse.Namespace) -> dict[str, Any]:
+    if args.housekeep_task == "sanitize":
+        return _dispatch_sanitize(service, args)
     step = args.housekeep_step
     if step == "scan":
         return transcripts.scan(
