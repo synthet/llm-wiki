@@ -380,3 +380,64 @@ def test_decide_holds_items_without_an_answer(env):
     answers.write_text(json.dumps({"answers": {}}), encoding="utf-8")
     transcripts.decide_cmd(env["plan"], answers, 0.5)
     assert all(i["action"] != "decide" for i in json.loads(env["plan"].read_text(encoding="utf-8"))["items"])
+
+
+# --------------------------------------------------------------------------- review fixes (wiki-y2tso round 3)
+MULTI = "opal river multiword"
+
+
+def test_redact_masks_whole_multiword_and_escaped_values():
+    raw = (
+        f"client_secret = {MULTI}\n"
+        'password: "a \\"quoted\\" opalpass"\n'
+        "DB_PASS=opalriver77\n"
+        'Authorization: Bearer "0123456789abcdef0123"\n'
+    )
+    text = redact(raw)
+    for leaked in ("river", "multiword", "opalpass", "opalriver77", "0123456789abcdef0123"):
+        assert leaked not in text, leaked
+    assert residual(text) == []
+    assert residual(f"client_secret = {MULTI}") != [], "an unmasked assignment must fail the residual check"
+
+
+def test_flattened_json_masks_whole_secret_values(env):
+    full = env["app"] / "cfg-export.jsonl"
+    full.write_text(
+        json.dumps({"event": "cfg", "config": {"password": MULTI, "db_password": "a,b;c d e"}})
+        + "\n"
+        + json.dumps({"message": {"role": "user", "content": "use DB_PASS=opalriver77 here"}})
+        + "\n",
+        encoding="utf-8",
+    )
+    os.utime(full, (OLD, OLD))
+    transcripts.scan([env["projects"]], env["plan"], allow_full=True)
+    fid = items_by_name(env["plan"])[full.name]["id"]
+    transcripts.describe(env["plan"], env["staging"], swarm_arg=None)
+    staged = (env["staging"] / f"{fid}.md").read_text(encoding="utf-8")
+    answers = env["root"] / "scratch" / "answers.json"
+    answers.write_text(json.dumps({"answers": {fid: {"choice": "ingest_redacted_full", "confidence": 0.9}}}), "utf-8")
+    transcripts.decide_cmd(env["plan"], answers, 0.5)
+    with contextlib.suppress(HousekeepExit):
+        transcripts.apply(env["plan"], env["service"], do=True, backup_name="hk-multi")
+    note = next((env["root"] / "wiki" / "notes" / "_local" / "session-archives" / "app").glob("cfg-export-*.md"))
+    with env["service"].store.reader() as con:
+        rows = con.execute("SELECT extracted_text, content_path FROM source_revisions").fetchall()
+    blobs = [staged, note.read_text(encoding="utf-8")] + [r["extracted_text"] or "" for r in rows]
+    blobs += [(env["service"].config.data_dir / r["content_path"]).read_text(encoding="utf-8") for r in rows]
+    for blob in blobs:
+        for leaked in ("river", "multiword", "d e", "opalriver77"):
+            assert leaked not in blob, leaked
+
+
+def test_note_metadata_is_redacted():
+    item = {"project": "someone.private@mailhost.org", "name": "chat.md", "bytes": 1, "sha256": "0" * 64}
+    text = transcripts.note_text(item, "Body sentence.", "ingest_summary")
+    assert "someone.private@mailhost.org" not in text
+
+
+def test_email_and_url_patterns_are_linear_on_long_runs():
+    start = time.monotonic()
+    for line in ("a." * 100_000, "a-" * 100_000, "x" * 200_000):
+        redact(line)
+        residual(line)
+    assert time.monotonic() - start < 5.0

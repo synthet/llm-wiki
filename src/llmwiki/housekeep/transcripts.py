@@ -42,7 +42,7 @@ from .common import (
     swarm_command,
     today,
 )
-from .redact import SECRET_FILE_RE, redact, residual
+from .redact import SECRET_FILE_RE, SECRET_KEY_RE, redact, residual
 
 TOOL = "llmwiki-housekeep-transcripts"
 NOTES_DIR = Path("wiki") / "notes" / "_local" / "session-archives"
@@ -216,6 +216,8 @@ def _flatten(value: Any, key: str = "") -> list[str]:
         return [line for v in value for line in _flatten(v, key)]
     if value is None or isinstance(value, bool):
         return []
+    if key and SECRET_KEY_RE.search(key):  # the whole value, whatever spaces or quotes it holds
+        return [f"{key}: [REDACTED:assignment]"]
     return [f"{key}: {value}" if key else str(value)]
 
 
@@ -493,6 +495,8 @@ def decide_cmd(plan_path: Path, answers_path: Path, min_confidence: float) -> di
 
 # --------------------------------------------------------------------------- apply
 def note_text(item: dict[str, Any], body: str, mode: str) -> str:
+    # Folder and file names can carry emails or user names: redact them like the body.
+    item = {**item, "project": redact(str(item["project"])), "name": redact(str(item["name"]))}
     title = f"Session {item['project']} {Path(item['name']).stem}"[:120]
     kind = "Summary" if mode == "ingest_summary" else "Redacted transcript"
     description = f"{kind} of an agent session export from {item['project']}."

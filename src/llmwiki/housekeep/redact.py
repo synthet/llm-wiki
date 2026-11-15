@@ -33,7 +33,8 @@ TOKEN_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
     ("JWT", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
     ("Private key block", re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----")),
-    ("Credentialed URL", re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s:/@\"']+:[^\s:/@\"']+@[^\s\"']+")),
+    # Bounded parts: an unbounded scheme or user part was quadratic on long `a-a-a-...` runs.
+    ("Credentialed URL", re.compile(r"\b[a-z][a-z0-9+.-]{0,30}://[^\s:/@\"']{1,256}:[^\s:/@\"']{1,256}@[^\s\"']+")),
     (
         "Suspicious assignment",
         re.compile(
@@ -52,22 +53,27 @@ SECRET_FILE_RE = re.compile(
     re.I,
 )
 PEM_BLOCK_RE = re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)", re.S)
-# Any KEY/TOKEN/SECRET/PASSWORD-like name assigned a value, quoted or not, anywhere on a line
-# (env files, YAML/JSON keys, shell exports, diff lines, and assignments embedded in prose).
+# Any KEY/TOKEN/SECRET/PASS-like name assigned a value, quoted or not, anywhere on a line (env files, YAML/JSON keys,
+# shell exports, diff lines, prose). Quoted values are masked to their closing quote (escapes honoured); an unquoted
+# value is masked to the end of the line, because values with spaces, commas or semicolons are still secrets.
+SECRET_KEY_WORDS = r"(?:key|token|secret|pass(?:w(?:or)?d)?|pwd|credential|auth)"
 ASSIGN_RE = re.compile(
-    r"(?i)(\b(?:export\s+)?\\?[\"']?[\w.-]{0,60}(?:key|token|secret|passw(?:or)?d|pwd|credential|auth)[\w.-]{0,60}"
-    r"\\?[\"']?\s*[:=]\s*)"
-    r"(?:\\\"((?:[^\"\\\n]|\\[^\"\n])*)\\\"|\"([^\"\n]*)\"|'([^'\n]*)'|([^\s\"'}]{1,200}))"
+    r"(?i)(\b(?:export\s+)?\\?[\"']?[\w.-]{0,60}" + SECRET_KEY_WORDS + r"[\w.-]{0,60}\\?[\"']?[ \t]*[:=][ \t]*)"
+    r"(?:\\\"((?:[^\"\\\n]|\\[^\"\n])*)\\\"|\"((?:[^\"\\\n]|\\.)*)\"|'([^'\n]*)'|([^\n]+))"
 )
-# The credential after an HTTP auth scheme (`Authorization: Bearer <hex>`), whatever its shape or length.
-AUTH_SCHEME_RE = re.compile(r"(?i)\b(bearer|basic|token|digest|negotiate)([ \t]+)([A-Za-z0-9._~+/=-]{6,})")
+SECRET_KEY_RE = re.compile(r"(?i)" + SECRET_KEY_WORDS)
+# The credential after an HTTP auth scheme (`Authorization: Bearer <hex>`), quoted or not, whatever its shape.
+AUTH_SCHEME_RE = re.compile(r"(?i)\b(bearer|basic|token|digest|negotiate)([ \t]+[\"']?)([A-Za-z0-9._~+/=-]{6,})")
 INJECTED_RE = re.compile(
     r"<(?P<tag>manually_attached_skills|system[-_]reminder|environment_context|INSTRUCTIONS|"
     r"available_subagent_types|available_subagent_models|dynamic_tools|dynamic_tool_namespaces|"
     r"command-[a-z]+|local-command-[a-z]+)\b[^>]*>.*?(?:</(?P=tag)\s*>|\Z)",
     re.I | re.S,
 )
-EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+# Starts only at the beginning of a run and every part is bounded, so long `a.a.a...` runs stay linear.
+EMAIL_RE = re.compile(
+    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){0,8}\.[A-Za-z]{2,24}\b"
+)
 PRIVATE_IP_RE = re.compile(r"\b(?:10|127|192\.168|172\.(?:1[6-9]|2\d|3[01]))(?:\.\d{1,3}){2,3}\b")
 USERS_PATH_RE = re.compile(r"(?i)(?<![A-Za-z])([A-Z]:[\\/]+Users[\\/]+|/home/|/Users/)([^\\/\s\"'`<]+)")
 GENERIC_TERMS = {"user", "admin", "root", "home", "localhost", "users", "default", "runner"}
@@ -140,6 +146,11 @@ def _term_re(term: str) -> re.Pattern[str]:
     return re.compile(r"(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])", re.I)
 
 
+def assign_value(m: re.Match[str]) -> str:
+    """The value of an ASSIGN_RE match, whichever quoting form matched."""
+    return next(v for v in (m.group(2), m.group(3), m.group(4), m.group(5)) if v is not None)
+
+
 def residual(text: str) -> list[str]:
     """What is still risky in already-redacted text; empty means safe to hand off."""
     found = finding_labels(text)
@@ -149,6 +160,8 @@ def residual(text: str) -> list[str]:
         found.append("Private key block")
     if any(not m.group(3).startswith("[REDACTED") for m in AUTH_SCHEME_RE.finditer(text)):
         found.append("credential after an auth scheme")
+    if any(not assign_value(m).lstrip().startswith("[REDACTED") for m in ASSIGN_RE.finditer(text)):
+        found.append("unmasked secret assignment")
     n = entropy_hits(text)
     if n:
         found.append(f"{n} high-entropy token(s)")
@@ -176,9 +189,8 @@ def redact(text: str, *, home: str | None = None) -> str:
     )
 
     def mask_assignment(m: re.Match[str]) -> str:
-        escaped, dq, sq, bare = m.group(2), m.group(3), m.group(4), m.group(5)
-        value = next(v for v in (escaped, dq, sq, bare) if v is not None)
-        if value.startswith("[REDACTED"):
+        escaped, dq, sq = m.group(2), m.group(3), m.group(4)
+        if assign_value(m).startswith("[REDACTED"):
             return m.group(0)
         quote = '\\"' if escaped is not None else '"' if dq is not None else "'" if sq is not None else ""
         return f"{m.group(1)}{quote}[REDACTED:assignment]{quote}"
