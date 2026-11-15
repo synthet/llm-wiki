@@ -392,29 +392,24 @@ def _exclude_line(rel: str) -> str:
     return "/" + re.sub(r"([*?\[\]\\!#])", r"\\\1", rel.replace("\\", "/"))
 
 
-def _redacted_copy(text: str, lines: set[int]) -> str:
-    out = text.splitlines(keepends=True)
-    for n in lines:
-        if 0 < n <= len(out):
-            out[n - 1] = redact(out[n - 1])
-    return "".join(out)
-
-
 def _report(item: dict[str, Any], path: Path, root: Path, repo: Path, backup_name: str, write: bool) -> dict:
-    """Tracked findings are reported (type, file, line). Optionally a copy with the flagged lines redacted is written to
-    the backup folder; the original values never leave the file (no diff with `-` lines is written)."""
+    """Tracked findings are reported (type, file, line).
+
+    Optionally a redacted copy goes to the backup folder: the whole file passes through `redact()` (over-masking by
+    design, so review it before reusing it), and the copy is written only when `residual()` and both detectors find
+    nothing anywhere in it. No diff is written, because its `-` lines would carry the original values.
+    """
     entry = {"id": item["id"], "kind": item["kind"], "repo": item["repo"], "path": item["path"],
              "findings": item["findings"]}  # fmt: skip
     if not write:
         return entry
     text = _text(path)
-    lines = {n for found in item["findings"].values() for n in found}
-    if text is None or not lines or _sha(path) != item["sha256"]:
+    if text is None or _sha(path) != item["sha256"]:
         return entry
-    copy = _redacted_copy(text, lines)
-    still = {n for v in secret_findings(copy, item["path"]).values() for n in v} & lines
-    if still:
-        entry["redacted_copy_skipped"] = "flagged lines still matched after redaction"
+    copy = redact(text)
+    left = residual(copy) + sorted(secret_findings(copy, item["path"])) + sorted(local_findings(copy))
+    if left:
+        entry["redacted_copy_skipped"] = f"the redacted copy still matched {sorted(set(left))}"
         return entry
     dest = root / "_backup" / backup_name / "sanitize-redacted" / repo.relative_to(root) / item["path"]
     dest.parent.mkdir(parents=True, exist_ok=True)

@@ -236,7 +236,71 @@ def test_cli_scan(env, capsys):
 
 def test_linear_on_long_runs():
     start = time.monotonic()
-    for line in ("a." * 100_000, "key." * 50_000, "x" * 200_000):
+    for line in ("a." * 100_000, "key." * 50_000, "x" * 200_000, "10.0.0.1\n" * 100_000):
         detect.secret_findings(line, "notes.txt")
         detect.local_findings(line)
     assert time.monotonic() - start < 5.0
+
+
+# --------------------------------------------------------------------------- review fixes (wiki-34jdp round 2)
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzQ9r8T2kLm"
+
+
+def test_precision_on_identifiers_and_shell():
+    for text, path in [
+        ("locKey: 'map_object_names_2_title'\n", "a.ts"),
+        ('"locKey": "quest_reward_3_desc"\n', "strings.json"),
+        ("idempotency_key = 'req-2024-abc-77'\n", "a.py"),
+        ("STORAGE_KEY='wiki-graph-cache-v2'\n", "a.ts"),
+        ('<Row key="row9item" />\n', "a.tsx"),
+        ("name=${a%%=*}\n", "x.sh"),
+        ("TOKEN=$(cat token.txt)\n", "x.sh"),
+        ("API_TOKEN=${API_TOKEN:?set it first}\n", "x.sh"),
+        ("primaryKey: userId42\n", "schema.yaml"),
+        ('foreignKey: "organizationId"\n', "schema.yaml"),
+        ('"key": "ctrl+shift+alt+k"\n', "keybindings.json"),
+        ("--token-bg: #0a0a0a;\n", "theme.css"),
+        ("password_policy: strict-mode\n", "a.yaml"),
+    ]:
+        assert detect.secret_findings(text, path) == {}, text
+
+
+def test_recall_on_slashes_connection_strings_and_explicit_passwords():
+    for text, path in [
+        (f"aws_secret_access_key = {AWS_SECRET}\n", "credentials.ini"),
+        (f'aws_secret_access_key = "{AWS_SECRET}"\n', "a.py"),
+        ('{"conn": "Server=db;User Id=app;Password=s3cr3tPw;"}\n', "appsettings.json"),
+        ("DB_PASSWORD=sunshinesky\n", "deploy.env"),
+        ('password: "letmein"\n', "a.py"),
+        ("APP_KEY=hunter2xyz\nSTRIPE_KEY=hunter2xyz\n", "a.env"),
+    ]:
+        assert detect.secret_findings(text, path) != {}, text
+
+
+def test_redacted_copy_never_keeps_a_secret(env):
+    app = env["app"]
+    (app / "keys.txt").write_text(
+        f"notes\n{PEM_BEGIN}\n{PEM_BODY}\n{PEM_BODY[::-1]}\n{PEM_END}\naws_secret_access_key = {AWS_SECRET}\n",
+        encoding="utf-8",
+    )
+    commit(app, "keys")
+    plan, items = scan(env)
+    assert items["keys.txt"]["kind"] == "tracked_secret"
+    result = sanitize.apply(env["plan"], env["service"], do=True, write_redacted=True, backup_name="hk-copy")
+    data = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    entry = next(r for r in data["report"] if r["path"] == "keys.txt")
+    if entry.get("redacted_copy"):
+        copy = Path(entry["redacted_copy"]).read_text(encoding="utf-8")
+        for value in (PEM_BODY, PEM_BODY[::-1], AWS_SECRET):
+            assert value not in copy
+    else:
+        assert entry.get("redacted_copy_skipped")
+
+
+def test_purge_reports_an_approved_record_without_a_copy(env):
+    manifest = env["root"] / "scratch" / "m.json"
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    rec = {"id": "S9001", "mode": "exclude", "path": "x", "scan_root": str(env["projects"]), "sha256": "0"}
+    manifest.write_text(json.dumps({"tool": sanitize.TOOL, "sanitize": [rec], "skipped": []}), encoding="utf-8")
+    res = sanitize.purge(manifest, env["service"], approve="S9001", approval_note="ok", do=True)
+    assert res["purged"] == [] and res["skipped"][0]["id"] == "S9001"

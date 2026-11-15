@@ -266,7 +266,10 @@ def purge_records(
     approved = set(filter(None, approve.split(",")))
     done, skipped = [], []
     for rec in manifest.get(key, []):
-        if rec["id"] not in approved or rec.get("purged") or not rec.get("to"):
+        if rec["id"] not in approved or rec.get("purged"):
+            continue
+        if not rec.get("to"):
+            skipped.append({"id": rec["id"], "why": "no quarantine copy recorded for this item"})
             continue
         to = Path(rec["to"])
         backup = Path(rec.get("scan_root") or "") / "_backup"
