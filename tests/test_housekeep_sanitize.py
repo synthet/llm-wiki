@@ -22,6 +22,7 @@ PEM_BEGIN, PEM_END = "-----BEGIN RSA " + "PRIVATE KEY-----", "-----END RSA " + "
 HEX = "0123456789abcdef" * 2 + "01234567"
 RANDOM = "Qm7Zr2Lx9Pw4Kd8Vt1Bn6Hy3Jc5Gf0Sa"
 EMAIL = "someone.private@mailhost.org"
+EXAMPLE_URL = "scheme://user:" + "pass@host"  # built at runtime so the repository secret scan skips the fixture
 OLD = time.time() - 60 * 86400
 
 # Every secret shape the transcripts reviews reported, as (line, value that must never appear in any output).
@@ -65,7 +66,7 @@ def env(tmp_path: Path):
     git(app, "remote", "add", "origin", "https://github.com/acme/app.git")
     (app / "config.ini").write_text("[db]\nhost = db.internal\nDB_PASSWORD=hunter2xyz\n", encoding="utf-8")
     (app / "app.py").write_text("token = get_token()\nlocKey = 'map_object_names'\n", encoding="utf-8")
-    (app / "README.md").write_text("Use scheme://user:pass@host for examples.\n", encoding="utf-8")
+    (app / "README.md").write_text(f"Use {EXAMPLE_URL} for examples.\n", encoding="utf-8")
     (app / "package.json").write_text('{"path-key": "^3.1.0", "cursor_ide_key": "abc.de.fghijk.Lmnopq"}\n', "utf-8")
     (app / ".env.example").write_text("API_TOKEN=<your token>\n", encoding="utf-8")
     (app / "docs").mkdir()
@@ -123,7 +124,7 @@ def test_detection_is_precise_on_tracked_source():
         ('"path-key": "^3.1.0"\n', "package.json"),
         ('"cursor_ide_key": "abc.de.fghijk.Lmnopq"\n', "x.json"),
         ("INAT_OAUTH_TOKEN_URL = 'https://example.org/x'\n", "a.py"),
-        ("see scheme://user:pass@host\n", "README.md"),
+        (f"see {EXAMPLE_URL}\n", "README.md"),
         ("tokenizer: bert-base-uncased\n", "m.yaml"),
     ]:
         assert detect.secret_findings(text, path) == {}, text

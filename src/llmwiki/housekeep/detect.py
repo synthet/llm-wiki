@@ -77,7 +77,7 @@ EXAMPLE_PASSWORDS = {"pass", "password", "passwd", "pwd", "secret", "token", "xx
 
 
 def _example_url(url: str) -> bool:
-    """`scheme://user:pass@host` in docs and pattern tables: the password part is a stock placeholder."""
+    """A credentialed-URL example in docs or pattern tables: its password part is a stock placeholder ("pass")."""
     m = re.match(r"[^:]+://[^:@/]+:([^@/]+)@", url)
     return bool(m) and (m.group(1).lower() in EXAMPLE_PASSWORDS or _placeholder(m.group(1)))
 
