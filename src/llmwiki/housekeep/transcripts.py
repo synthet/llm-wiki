@@ -19,25 +19,29 @@ import hashlib
 import json
 import os
 import re
-import shutil
-import stat
 import time
 from pathlib import Path
 from typing import Any
 
 from .common import (
     EXIT_FAILED,
-    EXIT_INPUT,
     EXIT_PREREQ,
     HousekeepExit,
+    check_backup_name,
     clean_agent_text,
     decide,
+    inside,
+    is_link,
     jev_payload,
     load,
     now,
+    purge_records,
+    quarantine,
     run,
     run_describe,
     save,
+    sha256,
+    store_digest,
     summary,
     swarm_command,
     today,
@@ -98,7 +102,6 @@ INJECTED = re.compile(
     r"\b[^>]*>.*?(?:</(?P=tag)\s*>|$)",
     re.IGNORECASE | re.DOTALL,
 )
-REPARSE_POINT = 0x400
 SAMPLE_BYTES = 65_536
 READ_LIMIT = 2_000_000
 EXCERPT_CHARS = 120_000
@@ -127,15 +130,6 @@ DESCRIBE_TASK = (
 
 
 # --------------------------------------------------------------------------- detection
-def is_link(path: Path) -> bool:
-    """Symlinks and Windows junctions/reparse points: never traverse or touch through them."""
-    try:
-        st = path.lstat()
-    except OSError:
-        return True
-    return stat.S_ISLNK(st.st_mode) or bool(getattr(st, "st_file_attributes", 0) & REPARSE_POINT)
-
-
 def dialogue_sample(sample: str) -> str:
     """Drop injected context and fenced examples before looking for dialogue markers."""
     sample = INJECTED.sub("\n", sample)
@@ -253,18 +247,6 @@ def is_tracked(path: Path, scan_root: Path) -> bool:
     if rc == 0:
         return True
     return not (rc == 1 and "did not match" in err.lower())
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def inside(path: Path, root: Path) -> bool:
-    p, r = os.path.normcase(os.path.abspath(path)), os.path.normcase(os.path.abspath(root))
-    try:
-        return p != r and os.path.commonpath([p, r]) == r
-    except ValueError:
-        return False
 
 
 # --------------------------------------------------------------------------- scan
@@ -525,16 +507,6 @@ def note_text(item: dict[str, Any], body: str, mode: str) -> str:
     return "\n".join(lines)
 
 
-def _quarantine(item: dict[str, Any], backup_name: str) -> Path:
-    root = Path(item["scan_root"])
-    dest = root / "_backup" / backup_name / "transcripts" / Path(item["path"]).relative_to(root)
-    if dest.exists():
-        dest = dest.with_name(f"{dest.stem}-{item['sha256'][:8]}{dest.suffix}")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(item["path"], dest)
-    return dest
-
-
 def apply(
     plan_path: Path,
     service: Any,
@@ -545,8 +517,7 @@ def apply(
 ) -> dict[str, Any]:
     plan = load(plan_path)
     backup_name = backup_name or f"housekeeping-{today()}"
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}", backup_name) or ".." in backup_name:
-        raise HousekeepExit(EXIT_INPUT, {"ok": False, "error": "--backup-name must be a plain folder name"})
+    check_backup_name(backup_name)
     roots = {os.path.normcase(r) for r in plan.get("scan_roots", [])}
     manifest_path = (
         Path(plan["root"]) / "_backup" / backup_name / f"manifest-transcripts-{now()[11:].replace(':', '')}.json"
@@ -631,7 +602,7 @@ def apply(
                     record["compiled"] = auto_compile_revisions(service, [result["revision_id"]]).get("count", 0)
         log.append(f"QUARANTINE {item['id']} {item['project']}/{item['name']}")
         if do:
-            record["to"] = str(_quarantine(item, backup_name))
+            record["to"] = str(quarantine(path, root, backup_name, "transcripts", item["sha256"]))
         manifest["transcripts"].append(record)
         if do:  # saved after every move, so a failure later in the loop still leaves a restorable record
             save(manifest_path, manifest)
@@ -654,15 +625,6 @@ def _slug(text: str) -> str:
 
 
 # --------------------------------------------------------------------------- verify / restore / purge
-def _store_digest(service: Any, source_id: str) -> str | None:
-    with service.store.reader() as con:
-        row = con.execute(
-            "SELECT sr.digest FROM sources s JOIN source_revisions sr ON s.current_revision_id = sr.id WHERE s.id = ?",
-            (source_id,),
-        ).fetchone()
-    return row["digest"] if row else None
-
-
 def verify(manifest_path: Path, service: Any) -> dict[str, Any]:
     manifest = load(manifest_path)
     problems = []
@@ -677,7 +639,7 @@ def verify(manifest_path: Path, service: Any) -> dict[str, Any]:
             note = Path(rec["note"])
             if not note.is_file() or hashlib.sha256(note.read_bytes()).hexdigest() != rec["note_digest"]:
                 problems.append(f"{rec['id']}: note missing or changed")
-            if _store_digest(service, rec["source_id"]) != rec["note_digest"]:
+            if store_digest(service, rec["source_id"]) != rec["note_digest"]:
                 problems.append(f"{rec['id']}: wiki store digest does not match the note")
     result = {"ok": not problems, "problems": problems, "count": len(manifest["transcripts"])}
     if problems:
@@ -693,29 +655,4 @@ def restore(manifest_path: Path) -> dict[str, Any]:
 
 def purge(manifest_path: Path, service: Any, *, approve: str, approval_note: str, do: bool = False) -> dict[str, Any]:
     """Permanently delete approved quarantine copies. Ingested items must still verify in the store first."""
-    if not approve or not approval_note:
-        raise HousekeepExit(2, {"ok": False, "error": "purge needs --approve <ids> and --approval-note"})
-    manifest = load(manifest_path)
-    approved = set(filter(None, approve.split(",")))
-    done, skipped = [], []
-    for rec in manifest["transcripts"]:
-        if rec["id"] not in approved or rec.get("purged"):
-            continue
-        to = Path(rec.get("to") or "")
-        backup = Path(rec.get("scan_root") or "") / "_backup"
-        if not rec.get("scan_root") or not inside(to, backup) or is_link(to):
-            skipped.append({"id": rec["id"], "why": "quarantine path is not a plain file inside <scan-root>/_backup"})
-            continue
-        if not to.is_file() or sha256(to) != rec["sha256"]:
-            skipped.append({"id": rec["id"], "why": "quarantine copy missing or changed"})
-            continue
-        if rec.get("source_id") and _store_digest(service, rec["source_id"]) != rec.get("note_digest"):
-            skipped.append({"id": rec["id"], "why": "wiki note no longer verifies; refusing to delete the original"})
-            continue
-        if do:
-            to.unlink()
-            rec.update(purged=now(), purge_approval=approval_note)
-        done.append(rec["id"])
-    if do and done:
-        save(manifest_path, manifest)
-    return {"dry_run": not do, "purged": done, "skipped": skipped}
+    return purge_records(manifest_path, "transcripts", service, approve=approve, approval_note=approval_note, do=do)

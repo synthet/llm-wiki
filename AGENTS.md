@@ -48,6 +48,23 @@ llmwiki housekeep transcripts purge --manifest <manifest> --approve T0003 --appr
   text can reach the TypeSafe reranker at query time. Permanent deletion is only `purge` with approved ids.
 - Exit codes inside `housekeep`: 0 ok, 1 some items failed, 2 bad input, 3 missing prerequisite (no swarm).
 
+### Housekeeping: secrets and machine-local data in project folders
+
+```bash
+llmwiki housekeep sanitize scan --scan-root <projects-root> --out <scratch>/plan.json [--owner login] [--allow-full]
+llmwiki housekeep sanitize describe|jev|decide|apply|verify|restore|purge ...   # same steps as transcripts
+```
+
+- Scans the user's own primary checkouts (not upstream clones, forks, linked worktrees or junction aliases):
+  tracked files with credentials or secret assignments (`tracked_secret`) or this machine's home path, user or host
+  name, or private IPs (`tracked_local`); untracked, not-ignored secret-named files (`untracked_secret_file`); and
+  untracked notes older than 30 days outside tool folders (`loose_note`). Transcripts are left to `transcripts`.
+- Tracked findings are reported by type and line only and never reach the describe agent or Jev. `apply
+  --write-redacted` writes a copy with the flagged lines redacted to the backup folder; the repo is never edited and
+  no diff carrying the original values is written. Rotate any credential it reports.
+- Loose notes: Jev chooses `wiki` (summary note under `wiki/notes/_local/audit/`), `wiki_full` (with `--allow-full`),
+  `keep` or `discard` (quarantine). Secret-named files: `exclude` adds an anchored line to `.git/info/exclude`.
+
 ## MCP servers
 
 - Define project servers in [`.mcp.json`](.mcp.json) (Claude Code), copy
