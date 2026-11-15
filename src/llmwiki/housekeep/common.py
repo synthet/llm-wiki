@@ -168,7 +168,10 @@ def decide(plan: dict[str, Any], answers: dict[str, Any], *, min_confidence: flo
     answers = answers.get("answers", answers)
     for item in plan["items"]:
         answer = answers.get(item["id"])
-        if item["action"] != "decide" or not isinstance(answer, dict):
+        if item["action"] != "decide":
+            continue
+        if not isinstance(answer, dict):  # protocol: a missing answer is a hold, not a pending decision
+            item["action"], item["why"] = "hold", "no Jev answer"
             continue
         choice, confidence = answer.get("choice"), float(answer.get("confidence") or 0)
         item["jev"] = {"choice": choice, "confidence": confidence, "probabilities": answer.get("probabilities")}

@@ -55,9 +55,12 @@ PEM_BLOCK_RE = re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END 
 # Any KEY/TOKEN/SECRET/PASSWORD-like name assigned a value, quoted or not, anywhere on a line
 # (env files, YAML/JSON keys, shell exports, diff lines, and assignments embedded in prose).
 ASSIGN_RE = re.compile(
-    r"(?i)(\b(?:export\s+)?[\"']?[\w.-]*(?:key|token|secret|passw(?:or)?d|pwd|credential|auth)[\w.-]*[\"']?"
-    r"\s*[:=]\s*)([\"']?)([^\s\"',;}]{4,})"
+    r"(?i)(\b(?:export\s+)?\\?[\"']?[\w.-]{0,60}(?:key|token|secret|passw(?:or)?d|pwd|credential|auth)[\w.-]{0,60}"
+    r"\\?[\"']?\s*[:=]\s*)"
+    r"(?:\\\"((?:[^\"\\\n]|\\[^\"\n])*)\\\"|\"([^\"\n]*)\"|'([^'\n]*)'|([^\s\"'}]{1,200}))"
 )
+# The credential after an HTTP auth scheme (`Authorization: Bearer <hex>`), whatever its shape or length.
+AUTH_SCHEME_RE = re.compile(r"(?i)\b(bearer|basic|token|digest|negotiate)([ \t]+)([A-Za-z0-9._~+/=-]{6,})")
 INJECTED_RE = re.compile(
     r"<(?P<tag>manually_attached_skills|system[-_]reminder|environment_context|INSTRUCTIONS|"
     r"available_subagent_types|available_subagent_models|dynamic_tools|dynamic_tool_namespaces|"
@@ -144,6 +147,8 @@ def residual(text: str) -> list[str]:
         found.append("local identity term")
     if PEM_BLOCK_RE.search(text):
         found.append("Private key block")
+    if any(not m.group(3).startswith("[REDACTED") for m in AUTH_SCHEME_RE.finditer(text)):
+        found.append("credential after an auth scheme")
     n = entropy_hits(text)
     if n:
         found.append(f"{n} high-entropy token(s)")
@@ -163,12 +168,22 @@ def redact(text: str, *, home: str | None = None) -> str:
             ),
             text,
         )
-    text = ASSIGN_RE.sub(
+    text = AUTH_SCHEME_RE.sub(
         lambda m: (
-            m.group(0) if m.group(3).startswith("[REDACTED") else f"{m.group(1)}{m.group(2)}[REDACTED:assignment]"
+            m.group(0) if m.group(3).startswith("[REDACTED") else f"{m.group(1)}{m.group(2)}[REDACTED:credential]"
         ),
         text,
     )
+
+    def mask_assignment(m: re.Match[str]) -> str:
+        escaped, dq, sq, bare = m.group(2), m.group(3), m.group(4), m.group(5)
+        value = next(v for v in (escaped, dq, sq, bare) if v is not None)
+        if value.startswith("[REDACTED"):
+            return m.group(0)
+        quote = '\\"' if escaped is not None else '"' if dq is not None else "'" if sq is not None else ""
+        return f"{m.group(1)}{quote}[REDACTED:assignment]{quote}"
+
+    text = ASSIGN_RE.sub(mask_assignment, text)
     home = home if home is not None else str(Path.home())
     for variant in sorted({home, home.replace("\\", "/"), home.replace("\\", "\\\\")}, key=len, reverse=True):
         if variant:

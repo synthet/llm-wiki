@@ -27,6 +27,7 @@ from typing import Any
 
 from .common import (
     EXIT_FAILED,
+    EXIT_INPUT,
     EXIT_PREREQ,
     HousekeepExit,
     clean_agent_text,
@@ -207,36 +208,49 @@ def _content_text(content: Any) -> str:
     return ""
 
 
+def _flatten(value: Any, key: str = "") -> list[str]:
+    """Every string in a JSON value as a `key: value` line, so escaped quotes never hide an assignment."""
+    if isinstance(value, dict):
+        return [line for k, v in value.items() for line in _flatten(v, str(k))]
+    if isinstance(value, list):
+        return [line for v in value for line in _flatten(v, key)]
+    if value is None or isinstance(value, bool):
+        return []
+    return [f"{key}: {value}" if key else str(value)]
+
+
 def to_text(path: Path, raw: str) -> str:
-    """JSON/JSONL message records become `role: text` lines so line-based redaction can see them."""
+    """JSON/JSONL becomes plain lines so line-based redaction can see every value.
+
+    Message records turn into `role: text`; any other record is flattened to `key: value` lines. Raw text is used
+    only when nothing parses as JSON.
+    """
     if path.suffix.lower() not in {".json", ".jsonl"}:
         return raw
+    records = _records(raw)
     lines = []
-    for record in _records(raw):
-        if not isinstance(record, dict):
-            continue
-        message = record.get("message", record.get("payload", record))
+    for record in records:
+        message = record.get("message", record.get("payload", record)) if isinstance(record, dict) else None
         if isinstance(message, dict) and message.get("role"):
             body = _content_text(message.get("content", message.get("text", "")))
             lines.append(f"{message['role']}: " + body.replace("\\n", "\n"))
-    return "\n\n".join(lines) if lines else raw
-
-
-def _repo_of(path: Path, stop: Path) -> Path | None:
-    for parent in path.parents:
-        if (parent / ".git").exists():
-            return parent
-        if parent == stop or stop not in parent.parents:
-            return None
-    return None
+        else:
+            lines.append("\n".join(_flatten(record)))
+    return "\n\n".join(lines) if records else raw
 
 
 def is_tracked(path: Path, scan_root: Path) -> bool:
-    repo = _repo_of(path, scan_root)
-    if repo is None:
-        return False
-    rc, _, _ = run(["git", "-C", str(repo), "ls-files", "--error-unmatch", "--", str(path.relative_to(repo))])
-    return rc == 0
+    """Whether git tracks the file, looking for the repo from the file itself (it may sit above the scan root).
+
+    Fails closed: any git error other than "not a repository" or "not tracked" counts as tracked, so the item is held.
+    """
+    rc, top, err = run(["git", "-C", str(path.parent), "rev-parse", "--show-toplevel"])
+    if rc != 0:
+        return "not a git repository" not in err.lower()
+    rc, _, err = run(["git", "-C", top, "ls-files", "--error-unmatch", "--", str(path)])
+    if rc == 0:
+        return True
+    return not (rc == 1 and "did not match" in err.lower())
 
 
 def sha256(path: Path) -> str:
@@ -448,7 +462,26 @@ def describe(
 
 
 def jev(plan_path: Path) -> dict[str, Any]:
-    return jev_payload(load(plan_path), CONTEXT, OPTION_TEXT, EVIDENCE_KEYS)
+    """The Jev payload, with folder and file names redacted; an item whose names stay risky is held instead."""
+    plan = load(plan_path)
+    held = False
+    for item in plan["items"]:
+        if item["action"] != "decide":
+            continue
+        safe = {k: redact(str(item.get(k, ""))) for k in ("project", "name")}
+        if residual(" ".join(safe.values())):
+            item["action"], item["why"] = "hold", "folder or file name still matched a redaction check"
+            held = True
+    if held:
+        save(plan_path, plan)
+    shown = {
+        **plan,
+        "items": [
+            {**i, "project": redact(str(i.get("project", ""))), "name": redact(str(i.get("name", "")))}
+            for i in plan["items"]
+        ],
+    }
+    return jev_payload(shown, CONTEXT, OPTION_TEXT, EVIDENCE_KEYS)
 
 
 def decide_cmd(plan_path: Path, answers_path: Path, min_confidence: float) -> dict[str, Any]:
@@ -508,7 +541,12 @@ def apply(
 ) -> dict[str, Any]:
     plan = load(plan_path)
     backup_name = backup_name or f"housekeeping-{today()}"
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}", backup_name) or ".." in backup_name:
+        raise HousekeepExit(EXIT_INPUT, {"ok": False, "error": "--backup-name must be a plain folder name"})
     roots = {os.path.normcase(r) for r in plan.get("scan_roots", [])}
+    manifest_path = (
+        Path(plan["root"]) / "_backup" / backup_name / f"manifest-transcripts-{now()[11:].replace(':', '')}.json"
+    )
     manifest: dict[str, Any] = {
         "tool": TOOL,
         "version": 1,
@@ -541,7 +579,13 @@ def apply(
         if is_tracked(path, root):
             skip(item, "now tracked in git")
             continue
-        record: dict[str, Any] = {"id": item["id"], "mode": mode, "path": str(path), "sha256": item["sha256"]}
+        record: dict[str, Any] = {
+            "id": item["id"],
+            "mode": mode,
+            "path": str(path),
+            "scan_root": str(root),
+            "sha256": item["sha256"],
+        }
         if mode != "discard":
             if mode == "ingest_summary":
                 summary_file = item.get("summary_file")
@@ -585,6 +629,8 @@ def apply(
         if do:
             record["to"] = str(_quarantine(item, backup_name))
         manifest["transcripts"].append(record)
+        if do:  # saved after every move, so a failure later in the loop still leaves a restorable record
+            save(manifest_path, manifest)
     result = {
         "dry_run": not do,
         "transcripts": len(manifest["transcripts"]),
@@ -592,8 +638,6 @@ def apply(
         "log": log,
     }
     if do and (manifest["transcripts"] or manifest["skipped"]):
-        backup = Path(plan["root"]) / "_backup" / backup_name
-        manifest_path = backup / f"manifest-transcripts-{now()[11:].replace(':', '')}.json"
         save(manifest_path, manifest)
         result["manifest"] = str(manifest_path)
     if manifest["skipped"] and do:
@@ -654,6 +698,10 @@ def purge(manifest_path: Path, service: Any, *, approve: str, approval_note: str
         if rec["id"] not in approved or rec.get("purged"):
             continue
         to = Path(rec.get("to") or "")
+        backup = Path(rec.get("scan_root") or "") / "_backup"
+        if not rec.get("scan_root") or not inside(to, backup) or is_link(to):
+            skipped.append({"id": rec["id"], "why": "quarantine path is not a plain file inside <scan-root>/_backup"})
+            continue
         if not to.is_file() or sha256(to) != rec["sha256"]:
             skipped.append({"id": rec["id"], "why": "quarantine copy missing or changed"})
             continue
