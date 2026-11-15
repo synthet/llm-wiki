@@ -11,6 +11,8 @@ from typing import Any
 
 from .config import discover_root
 from .errors import LLMWikiError, error
+from .housekeep import cli as housekeep_cli
+from .housekeep.common import HousekeepExit
 from .providers import ProviderConfig
 from .service import WikiService
 
@@ -94,6 +96,7 @@ def parser() -> argparse.ArgumentParser:
     links = commands.add_parser("links")
     links.add_argument("ref")
     commands.add_parser("rules")
+    housekeep_cli.add_parser(commands)
     mcp = commands.add_parser("mcp")
     mcp.add_argument("--allow-writes", action="store_true")
     mcp.add_argument("--allow-review", action="store_true")
@@ -131,6 +134,9 @@ def main(argv: list[str] | None = None) -> int:
         if payload is not None:
             _emit({"ok": True, "result": payload}, compact=args.json)
         return 0
+    except HousekeepExit as exc:
+        _emit(exc.payload, compact=args.json)
+        return exc.code
     except LLMWikiError as exc:
         _emit({"ok": False, "error": exc.as_dict()}, compact=args.json, stream=sys.stderr)
         return _exit_code(exc.code)
@@ -151,6 +157,8 @@ def _dispatch(service: WikiService, args: argparse.Namespace) -> dict[str, Any] 
 
         run_stdio(service.config.root, allow_writes=args.allow_writes, allow_review=args.allow_review)
         return None
+    if command == "housekeep":
+        return housekeep_cli.dispatch(service, args)
     if command == "new":
         return service.new_entity(args.title, args.alias)
     if command == "ingest":
