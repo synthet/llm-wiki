@@ -437,7 +437,48 @@ def test_note_metadata_is_redacted():
 
 def test_email_and_url_patterns_are_linear_on_long_runs():
     start = time.monotonic()
-    for line in ("a." * 100_000, "a-" * 100_000, "x" * 200_000):
+    for line in ("a." * 100_000, "a-" * 100_000, "x" * 200_000, "key." * 50_000):
         redact(line)
         residual(line)
     assert time.monotonic() - start < 5.0
+
+
+# --------------------------------------------------------------------------- review fixes (wiki-y2tso round 4)
+def test_assignment_after_an_already_masked_token_on_the_same_line():
+    for raw in (
+        f"GITHUB_TOKEN={TOKEN} DB_PASSWORD={PASSWORD} npm run deploy",
+        f"export OPENAI_API_KEY=sk-{'a1B2' * 6}; export DB_PASS={PASSWORD}",
+        f"api_key: {TOKEN}, password: opal river",
+    ):
+        text = redact(raw)
+        assert PASSWORD not in text and "opal river" not in text, text
+        assert residual(text) == []
+    assert residual(f"token: [REDACTED:GitHub token] DB_PASSWORD={PASSWORD}") != []
+
+
+def test_same_line_token_and_password_never_reach_any_output(env):
+    line = f"GITHUB_TOKEN={TOKEN} DB_PASSWORD={PASSWORD} npm run deploy"
+    md = env["app"] / "2026-10-05-120000-deploy.md"
+    md.write_text(f"## User\nrun this\n\n## Assistant\n{line}\n", encoding="utf-8")
+    jl = env["app"] / "rollout-deploy.jsonl"
+    jl.write_text(json.dumps({"message": {"role": "user", "content": line}}) + "\n", encoding="utf-8")
+    for p in (md, jl):
+        os.utime(p, (OLD, OLD))
+    transcripts.scan([env["projects"]], env["plan"], allow_full=True)
+    items = items_by_name(env["plan"])
+    transcripts.describe(env["plan"], env["staging"], swarm_arg=None)
+    staged = "".join((env["staging"] / f"{items[p.name]['id']}.md").read_text(encoding="utf-8") for p in (md, jl))
+    answers = env["root"] / "scratch" / "answers.json"
+    choice = {"choice": "ingest_redacted_full", "confidence": 0.9}
+    answers.write_text(json.dumps({"answers": {items[p.name]["id"]: choice for p in (md, jl)}}), "utf-8")
+    transcripts.decide_cmd(env["plan"], answers, 0.5)
+    with contextlib.suppress(HousekeepExit):
+        transcripts.apply(env["plan"], env["service"], do=True, backup_name="hk-line")
+    notes = list((env["root"] / "wiki" / "notes" / "_local" / "session-archives" / "app").glob("*deploy*.md"))
+    assert len(notes) == 2
+    with env["service"].store.reader() as con:
+        rows = con.execute("SELECT extracted_text, content_path FROM source_revisions").fetchall()
+    blobs = [staged] + [n.read_text(encoding="utf-8") for n in notes] + [r["extracted_text"] or "" for r in rows]
+    blobs += [(env["service"].config.data_dir / r["content_path"]).read_text(encoding="utf-8") for r in rows]
+    for blob in blobs:
+        assert PASSWORD not in blob and TOKEN not in blob

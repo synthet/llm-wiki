@@ -57,8 +57,11 @@ PEM_BLOCK_RE = re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END 
 # shell exports, diff lines, prose). Quoted values are masked to their closing quote (escapes honoured); an unquoted
 # value is masked to the end of the line, because values with spaces, commas or semicolons are still secrets.
 SECRET_KEY_WORDS = r"(?:key|token|secret|pass(?:w(?:or)?d)?|pwd|credential|auth)"
+# Starts only at the beginning of a word run, so long `key.key.key...` runs are tried once, not at every position.
 ASSIGN_RE = re.compile(
-    r"(?i)(\b(?:export\s+)?\\?[\"']?[\w.-]{0,60}" + SECRET_KEY_WORDS + r"[\w.-]{0,60}\\?[\"']?[ \t]*[:=][ \t]*)"
+    r"(?i)((?<![\w.-])(?:export\s+)?\\?[\"']?[\w.-]{0,60}"
+    + SECRET_KEY_WORDS
+    + r"[\w.-]{0,60}\\?[\"']?[ \t]*[:=][ \t]*)"
     r"(?:\\\"((?:[^\"\\\n]|\\[^\"\n])*)\\\"|\"((?:[^\"\\\n]|\\.)*)\"|'([^'\n]*)'|([^\n]+))"
 )
 SECRET_KEY_RE = re.compile(r"(?i)" + SECRET_KEY_WORDS)
@@ -151,6 +154,14 @@ def assign_value(m: re.Match[str]) -> str:
     return next(v for v in (m.group(2), m.group(3), m.group(4), m.group(5)) if v is not None)
 
 
+MASKED_ONLY_RE = re.compile(r"(?:\[REDACTED:[^\]\n]*\][\s,;]*)+")
+
+
+def masked_only(value: str) -> bool:
+    """True when a value is nothing but redaction markers. `[REDACTED:x] DB_PASSWORD=v` is not: the tail is live."""
+    return bool(MASKED_ONLY_RE.fullmatch(value.strip()))
+
+
 def residual(text: str) -> list[str]:
     """What is still risky in already-redacted text; empty means safe to hand off."""
     found = finding_labels(text)
@@ -160,7 +171,7 @@ def residual(text: str) -> list[str]:
         found.append("Private key block")
     if any(not m.group(3).startswith("[REDACTED") for m in AUTH_SCHEME_RE.finditer(text)):
         found.append("credential after an auth scheme")
-    if any(not assign_value(m).lstrip().startswith("[REDACTED") for m in ASSIGN_RE.finditer(text)):
+    if any(not masked_only(assign_value(m)) for m in ASSIGN_RE.finditer(text)):
         found.append("unmasked secret assignment")
     n = entropy_hits(text)
     if n:
@@ -190,7 +201,7 @@ def redact(text: str, *, home: str | None = None) -> str:
 
     def mask_assignment(m: re.Match[str]) -> str:
         escaped, dq, sq = m.group(2), m.group(3), m.group(4)
-        if assign_value(m).startswith("[REDACTED"):
+        if masked_only(assign_value(m)):
             return m.group(0)
         quote = '\\"' if escaped is not None else '"' if dq is not None else "'" if sq is not None else ""
         return f"{m.group(1)}{quote}[REDACTED:assignment]{quote}"
